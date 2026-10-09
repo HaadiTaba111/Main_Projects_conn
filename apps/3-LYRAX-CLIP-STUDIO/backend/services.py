@@ -94,6 +94,7 @@ class TimelineService:
 
 class RenderService:
     _jobs = {} # job_id -> status dict
+    _renderers = {} # job_id -> running renderer (only while the job is active)
     _lock = threading.Lock() # FIX: قفل ایمنی نخ‌ها برای جلوگیری از Race Condition
 
     @classmethod
@@ -109,9 +110,10 @@ class RenderService:
                 "created_at": time.time()
             }
 
-        from backend.renderers import FFmpegRenderer, MoviePyRenderer
+        from backend.renderers import FFmpegRenderer, MoviePyRenderer, RenderCancelled
 
         def run():
+            renderer = None
             try:
                 proj_dir = FileService.get_project_dir(project.name)
                 output_filename = f"{project.name}_export.mp4"
@@ -127,6 +129,10 @@ class RenderService:
                     renderer = MoviePyRenderer(project, proj_dir, output_path, progress_cb)
                 else:
                     renderer = FFmpegRenderer(project, proj_dir, output_path, progress_cb)
+                with cls._lock:
+                    cls._renderers[job_id] = renderer
+                    if cls._jobs.get(job_id, {}).get("cancel_requested"):
+                        renderer.cancel()  # cancel arrived before the encoder was created
 
                 renderer.render()
 
@@ -137,6 +143,14 @@ class RenderService:
                         "message": "رندر با موفقیت به اتمام رسید!",
                         "output_file": output_filename
                     })
+            except RenderCancelled as e:
+                cls._discard_partial_output(output_path)
+                with cls._lock:
+                    cls._jobs[job_id].update({
+                        "status": "cancelled",
+                        "error": None,
+                        "message": str(e)
+                    })
             except Exception as e:
                 with cls._lock:
                     cls._jobs[job_id].update({
@@ -144,15 +158,43 @@ class RenderService:
                         "error": str(e),
                         "message": f"خطا در رندر: {str(e)}"
                     })
+            finally:
+                with cls._lock:
+                    cls._renderers.pop(job_id, None)
 
         thread = threading.Thread(target=run, daemon=True)
         thread.start()
         return job_id
 
     @classmethod
+    def cancel_job(cls, job_id):
+        """Request cancellation of a running job. Returns the job status after the request."""
+        with cls._lock:
+            job = cls._jobs.get(job_id)
+            if job is None:
+                return {"status": "not_found"}
+            if job.get("status") != "rendering":
+                return dict(job)
+            job["cancel_requested"] = True
+            job["message"] = "در حال توقف رندر..."
+            renderer = cls._renderers.get(job_id)
+        if renderer is not None:
+            renderer.cancel()  # terminates ffmpeg; the worker thread then records 'cancelled'
+        with cls._lock:
+            return dict(cls._jobs.get(job_id, {"status": "not_found"}))
+
+    @staticmethod
+    def _discard_partial_output(output_path):
+        try:
+            if os.path.isfile(output_path):
+                os.remove(output_path)
+        except OSError:
+            pass
+
+    @classmethod
     def get_job_status(cls, job_id):
         with cls._lock: # FIX: خواندن ایمن وضعیت
-            return cls._jobs.get(job_id, {"status": "not_found"})
+            return dict(cls._jobs.get(job_id, {"status": "not_found"}))
 
     @classmethod
     def cleanup_old_jobs(cls, max_age_seconds=3600):

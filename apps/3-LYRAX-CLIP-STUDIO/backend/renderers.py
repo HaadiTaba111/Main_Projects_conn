@@ -31,15 +31,34 @@ def _resolve_english_font_path():
 ENGLISH_FONT_PATH = _resolve_english_font_path()
 
 
+class RenderCancelled(RuntimeError):
+    """Raised when a render is stopped on request, not because of an encoder failure."""
+
+
 class RenderEngine:
     def __init__(self, project, project_dir, output_path, progress_callback=None):
         self.project = project
         self.project_dir = project_dir
         self.output_path = output_path
         self.progress_callback = progress_callback or (lambda pct, msg: None)
+        self.process = None  # subprocess handle, set while an external encoder runs
+        self.cancel_requested = False
 
     def render(self):
         raise NotImplementedError("Render method must be implemented by subclasses")
+
+    def cancel(self):
+        """Stop a running encoder process (idempotent; safe from another thread)."""
+        self.cancel_requested = True
+        process = self.process
+        if process is not None and process.poll() is None:
+            try:
+                process.terminate()
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+            except OSError:
+                pass
 
 
 _PERSIAN_CHAR_RE = re.compile(r'[\u0600-\u06FF\u200C\u200F]')
@@ -663,7 +682,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         cmd.extend(["-c:v", "libx264", "-preset", "fast", "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-t", str(duration), self.output_path])
 
         self.progress_callback(15, "آغاز پردازش رندر و ترکیب مدیا...")
-        process = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+        # stdout is unused by ffmpeg here; DEVNULL avoids a full pipe blocking the encoder.
+        process = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.DEVNULL, universal_newlines=True)
+        self.process = process
+        if self.cancel_requested:
+            self.cancel()
         time_pattern = re.compile(r"time=(\d{2}):(\d{2}):(\d{2}\.\d{2})")
 
         stderr_tail = []
@@ -682,7 +705,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     pct = min(95, 15 + int((current_sec / duration) * 80))
                     self.progress_callback(pct, f"رندر ویدیو: {int((current_sec/duration)*100)}% انجام شده...")
 
+        process.stderr.close()
         ret = process.poll()
+        if self.cancel_requested:
+            raise RenderCancelled("رندر توسط کاربر متوقف شد.")
         if ret != 0:
             raise RuntimeError(f"FFmpeg failed with exit code {ret}:\n" + "".join(stderr_tail))
 

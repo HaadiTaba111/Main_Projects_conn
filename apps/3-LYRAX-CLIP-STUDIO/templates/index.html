@@ -1129,6 +1129,22 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         let lastBackendRenderFilename = '';
         let lastBackendRenderSignature = '';
         let backendRenderInProgress = false;
+        let backendRenderJobId = null;          // شناسه‌ی کار رندر سرور در حال اجرا (برای توقف)
+        let backendRenderCancelRequested = false;
+        const BACKEND_RENDER_STOPPED_MSG = 'رندر سرور توسط کاربر متوقف شد.';
+
+        // توقف رندر سرور: فرایند FFmpeg روی سرور کشته می‌شود و خروجی ناقص حذف می‌شود.
+        async function cancelBackendRender() {
+            if (!backendRenderInProgress || !backendRenderJobId || backendRenderCancelRequested) return;
+            backendRenderCancelRequested = true;
+            const statusLabel = document.getElementById('backendRenderStatus');
+            if (statusLabel) statusLabel.textContent = '⏹ در حال توقف رندر سرور...';
+            try {
+                await fetch(`/api/render_cancel/${encodeURIComponent(backendRenderJobId)}`, { method: 'POST' });
+            } catch (e) {
+                console.warn('Cancel request failed:', e);
+            }
+        }
         // A user-stopped preview defines a hard end point for subsequent FFmpeg/WebM renders.
         let selectedRenderEndTime = null;
 
@@ -3287,7 +3303,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             if (isPlaying) stopPlayback(true);
 
             backendRenderInProgress = true;
+            backendRenderJobId = null;
+            backendRenderCancelRequested = false;
             if (button) button.disabled = true;
+            const btnStopForRender = document.getElementById('btnStop');
+            if (btnStopForRender) btnStopForRender.disabled = false; // Stop = توقف رندر سرور در این حالت
             if (lastCreatedVideoUrl) { try { URL.revokeObjectURL(lastCreatedVideoUrl); } catch (e) {} lastCreatedVideoUrl = null; }
             lastBackendRenderBlob = null;
             lastBackendRenderFilename = '';
@@ -3395,6 +3415,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 if (!startResponse.ok || startResult.status !== 'success' || !startResult.job_id) {
                     throw new Error(startResult.message || `شروع رندر ناموفق بود (HTTP ${startResponse.status}).`);
                 }
+                backendRenderJobId = startResult.job_id;
 
                 const startedAt = Date.now();
                 let jobStatus = null;
@@ -3409,6 +3430,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                     if (progressBar) progressBar.style.width = `${progress}%`;
                     if (progressText) progressText.textContent = `${progress}% · رندر FFmpeg`;
                     if (jobStatus.status === 'completed') break;
+                    if (jobStatus.status === 'cancelled') throw new Error(BACKEND_RENDER_STOPPED_MSG);
                     if (jobStatus.status === 'error') throw new Error(jobStatus.error || jobStatus.message || 'رندر FFmpeg ناموفق بود.');
                     await new Promise(resolve => setTimeout(resolve, 800));
                 }
@@ -3444,12 +3466,21 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 if (statusLabel) statusLabel.textContent = `✅ رندر واقعی FFmpeg آماده شد: ${clientFilename}${autoZip ? ' · ZIP کامل دانلود شد' : ''}`;
                 showToast('🏆 خروجی نهایی سرور ساخته شد و برای ذخیره آماده است.');
             } catch (error) {
-                console.error('Backend render failed:', error);
-                if (statusLabel) statusLabel.textContent = `⚠️ ${error.message}`;
-                showToast(`⚠️ رندر نهایی انجام نشد: ${error.message}`);
+                if (error.message === BACKEND_RENDER_STOPPED_MSG || backendRenderCancelRequested) {
+                    if (statusLabel) statusLabel.textContent = `⏹ ${BACKEND_RENDER_STOPPED_MSG}`;
+                    showToast('⏹ رندر سرور متوقف شد.');
+                } else {
+                    console.error('Backend render failed:', error);
+                    if (statusLabel) statusLabel.textContent = `⚠️ ${error.message}`;
+                    showToast(`⚠️ رندر نهایی انجام نشد: ${error.message}`);
+                }
             } finally {
                 backendRenderInProgress = false;
+                backendRenderJobId = null;
+                backendRenderCancelRequested = false;
                 if (button) button.disabled = false;
+                const btnStopDone = document.getElementById('btnStop');
+                if (btnStopDone && !isPlaying) btnStopDone.disabled = true;
             }
         }
 
@@ -3577,6 +3608,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         }
 
         function stopPlayback(userRequested = false) {
+            if (backendRenderInProgress && !isPlaying) { cancelBackendRender(); return; }
             const wasPlaying = isPlaying;
             let stoppedAt = null;
             if (userRequested && wasPlaying) {

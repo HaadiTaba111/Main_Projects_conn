@@ -106,6 +106,10 @@ def render_status(job_id):
     status = RenderService.get_job_status(job_id)
     return jsonify(status)
 
+@app.route("/api/render_cancel/<job_id>", methods=["POST"])
+def render_cancel(job_id):
+    return jsonify(RenderService.cancel_job(job_id))
+
 @app.route("/api/project/<project_name>/media/<filename>")
 def serve_media(project_name, filename):
     proj_dir = FileService.get_project_dir(project_name)
