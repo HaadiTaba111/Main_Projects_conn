@@ -36,10 +36,6 @@ const MARKET_PROXY_ROUTES = [
   {
     name: 'OKX', prefix: '/api/market/okx', base: 'https://www.okx.com',
     allow: pathname => ['/api/v5/market/tickers', '/api/v5/market/candles'].includes(pathname)
-  },
-  {
-    name: 'COINGECKO', prefix: '/api/market/coingecko', base: 'https://api.coingecko.com',
-    allow: pathname => pathname === '/api/v3/coins/markets' || /^\/api\/v3\/coins\/[a-z0-9-]+\/ohlc$/.test(pathname)
   }
 ];
 
@@ -132,5 +128,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Pump/Dump Lab (standalone): http://localhost:${PORT}`);
-  console.log('📡 Whole-market radar: Bybit → Binance → OKX → CoinGecko (server proxy + browser fallback) | 🔊 Audio alerts | 🧭 Independent from futures autotrader\n');
+  console.log('📡 Whole-market radar: Bybit → Binance → OKX (server proxy + browser fallback) | 🔊 Audio alerts | 🧭 Independent from futures autotrader\n');
 });

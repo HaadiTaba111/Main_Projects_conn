@@ -45,11 +45,8 @@ EFFECT_SPEC = {
             {"value": "cool", "label": "سرد / یخی"},
         ]},
     ],
-    "manual_triggers": [
-        {"id": "single", "label": "🎆 آتش‌بازی", "payload": {"tier": 1}},
-        {"id": "double", "label": "🎇 دو انفجار", "payload": {"tier": 2}},
-        {"id": "finale", "label": "✨ فیناله", "payload": {"tier": 3}},
-    ],
+    # دکمه‌های تریگر دستی آتش‌بازی (کلید ۵) حذف شدند؛ افکت به‌صورت لایه‌ای/بازهٔ زمانی کار می‌کند.
+    "manual_triggers": [],
 }
 
 

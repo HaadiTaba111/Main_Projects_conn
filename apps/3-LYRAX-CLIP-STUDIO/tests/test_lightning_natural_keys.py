@@ -1,4 +1,4 @@
-"""تست رعد طبیعی (tier 4) و نگاشت پنج کلید: ۱-۳ رعد، ۴ رعد طبیعی، ۵ آتش‌بازی.
+"""تست رعد طبیعی (tier 4) و نگاشت پنج کلید: ۱-۴ رعد (۴ = رعد طبیعی). آتش‌بازی کلید ندارد.
 
 اجرا:  python3 -m unittest tests.test_lightning_natural_keys
 """
@@ -27,7 +27,7 @@ class HotkeyContractTests(unittest.TestCase):
         self.assertEqual(mapping["4"], ("lightning", "tier-4"))
         # کلید ۵ حذف شد (تصمیم صاحب پروژه)؛ آتش‌بازی همچنان به‌عنوان تریگر دکمه‌ای موجود است.
         self.assertNotIn("5", mapping)
-        self.assertIn("single", [t["id"] for t in fireworks.EFFECT_SPEC["manual_triggers"]])
+        self.assertEqual(fireworks.EFFECT_SPEC["manual_triggers"], [])
 
     def test_manifest_served_to_browser_keeps_hotkeys(self):
         by_id = {spec["id"]: spec for spec in registry.get_effect_specs()}

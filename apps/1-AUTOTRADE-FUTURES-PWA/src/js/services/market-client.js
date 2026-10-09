@@ -17,7 +17,6 @@ const MOCK_BASES = Object.freeze({
 
 // مپ تایم‌فریم مشترک برای مسیرهای مستقیم (Direct) صرافی‌ها
 const OKX_BARS = Object.freeze({ '1': '1m', '3': '3m', '5': '5m', '15': '15m', '30': '30m', '60': '1H', '120': '2H', '240': '4H', 'D': '1D' });
-const BINANCE_TFS = Object.freeze({ '1': '1m', '3': '3m', '5': '5m', '15': '15m', '30': '30m', '60': '1h', '120': '2h', '240': '4h', 'D': '1d' });
 
 // ⏱ هر درخواست شبکه سقف زمان دارد. بدون این سقف، روی شبکهٔ فیلترشده یک
 // اتصال بی‌پاسخ می‌تواند دقیقه‌ها معلق بماند و کل حلقهٔ اسکن خودکار را بخواباند.
@@ -44,7 +43,7 @@ export class MarketClient {
 
 
   /**
-   * نرمال‌سازی نهایی دیتای کندل برای همهٔ مسیرها (پروکسی/OKX/Binance):
+   * نرمال‌سازی نهایی دیتای کندل برای همهٔ مسیرها (پروکسی/OKX):
    * هم‌ترازی روی مرز تایم‌فریم + حذف تکراری + حذف کندل در حال تشکیل +
    * ثبت کهنگی کندل بسته. این همان گامی است که «تحلیل ۱ساعته، بستن ۱دقیقه‌ای» را غیرممکن می‌کند.
    */
@@ -208,49 +207,15 @@ export class MarketClient {
       }
     } catch (e) { pathErrors.push(String(e?.message || e).slice(0, 140)); }
 
-    // 2. Binance — نردبان: پروکسی سرور → مستقیم مرورگر
-    try {
-      const bTf = BINANCE_TFS[String(s.timeframe)] || '1h';
-      const [tData, kData] = await Promise.all([
-        this.fetchLadder([
-          { name: 'binance-proxy', url: `/api/binance-futures/fapi/v1/ticker/24hr?symbol=${symbol}` },
-          { name: 'binance-direct', url: `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}` }
-        ]),
-        this.fetchLadder([
-          { name: 'binance-proxy', url: `/api/binance-futures/fapi/v1/klines?symbol=${symbol}&interval=${bTf}&limit=90` },
-          { name: 'binance-direct', url: `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${bTf}&limit=90` }
-        ])
-      ]);
-
-      if (tData.lastPrice && Array.isArray(kData)) {
-        const price = Number(tData.lastPrice);
-        // Binance از قدیمی به جدید می‌فرستد؛ بدون reverse (باگ ترتیب نسخه قبل رفع شد)
-        const candles = this.parseCandleRows(kData, { newestFirst: false, binanceExtras: true });
-        this.lastPathErrors = '';
-        // 🔧 همان فیکس هم‌ترازی برای مسیر مستقیم Binance
-        return this.normalizeMarket(symbol, {
-          price,
-          candles,
-          source: 'BINANCE LIVE (DIRECT)',
-          exchangeTime: Number(tData.closeTime || Date.now()),
-          receivedAt: Date.now(),
-          requestInfo: { tickerUrl: 'binance-direct', klineUrl: 'binance-direct' },
-          tickerRaw: { symbol, lastPrice: String(price), markPrice: String(price) }
-        }, this.s.value.timeframe, { dropForming: this.s.value.useClosedCandle === 'true' });
-      } else {
-        throw new Error('binance: پاسخ نامعتبر');
-      }
-    } catch (e) { pathErrors.push(String(e?.message || e).slice(0, 140)); }
-
     const detail = pathErrors.join(' | ');
     this.lastPathErrors = detail;
-    throw new Error(`هیچ مسیر دیتا کار نکرد (${symbol}): ${detail || 'okx/binance-futures ناموفق'}`);
+    throw new Error(`هیچ مسیر دیتا کار نکرد (${symbol}): ${detail || 'okx ناموفق'}`);
   }
 
   /**
    * دریافت کندل‌های یک تایم‌فریم دلخواه (مخصوصاً ریز: 1m/3m) برای فیلتر
    * Micro-Candle. با کش ۱۵ ثانیه‌ای تا اسکن‌های ۵ ثانیه‌ای ترافیک اضافه نسازند.
-   * مسیرها همان زنجیره ضدتحریم اصلی است: پروکسی Bybit → OKX مستقیم → Binance مستقیم.
+   * مسیرها همان زنجیره ضدتحریم اصلی است: پروکسی Bybit → OKX مستقیم.
    */
   async getKlines(symbol, timeframe, { ttlMs = 15000 } = {}) {
     const key = `${symbol}:${timeframe}`;
@@ -301,20 +266,15 @@ export class MarketClient {
   }
 
   /**
-   * کندل پشتیبان وقتی مسیر اصلی جواب نداد. ترتیب: پراکسی سرور (OKX → Binance روی
-   * همین origin) و بعد مستقیم. هر تلاش سقف زمانی دارد تا اسکن خودکار هرگز معلق نماند.
+   * کندل پشتیبان وقتی مسیر اصلی جواب نداد. ترتیب: پراکسی سرور (OKX) و بعد مستقیم. هر تلاش سقف زمانی دارد تا اسکن خودکار هرگز معلق نماند.
    */
   async fetchDirectKlines(symbol, timeframe) {
     const okxInst = symbol.replace('USDT', '-USDT-SWAP'); // 📌 قرارداد دائمی (نه اسپات)
     const bar = OKX_BARS[String(timeframe)] || '1m';
-    const binanceInterval = BINANCE_TFS[String(timeframe)] || '1m';
     const okxCandles = body => (body?.code === '0' && Array.isArray(body.data) ? { rows: body.data, newestFirst: true } : null);
-    const binanceCandles = body => (Array.isArray(body) ? { rows: body, newestFirst: false, binanceExtras: true } : null);
     const attempts = [
       { name: 'okx-proxy', url: `/api/okx/api/v5/market/candles?instId=${okxInst}&bar=${bar}&limit=60`, source: 'OKX LIVE (SERVER PROXY)', parse: okxCandles },
       { name: 'okx-direct', url: `https://www.okx.com/api/v5/market/candles?instId=${okxInst}&bar=${bar}&limit=60`, source: 'OKX LIVE (DIRECT)', parse: okxCandles },
-      { name: 'binance-proxy', url: `/api/binance-futures/fapi/v1/klines?symbol=${symbol}&interval=${binanceInterval}&limit=60`, source: 'BINANCE LIVE (SERVER PROXY)', parse: binanceCandles },
-      { name: 'binance-direct', url: `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${binanceInterval}&limit=60`, source: 'BINANCE LIVE (DIRECT)', parse: binanceCandles }
     ];
 
     const errors = [];
@@ -324,7 +284,7 @@ export class MarketClient {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const parsed = attempt.parse(await response.json());
         if (!parsed) throw new Error('پاسخ نامعتبر');
-        const candles = this.parseCandleRows(parsed.rows, { newestFirst: parsed.newestFirst, binanceExtras: parsed.binanceExtras });
+        const candles = this.parseCandleRows(parsed.rows, { newestFirst: parsed.newestFirst });
         const aligned = alignCandles(candles, { ms: tfMilliseconds(timeframe), now: Date.now(), dropForming: true });
         if (aligned.candles.length >= 4) {
           this.lastPathErrors = '';
@@ -347,7 +307,7 @@ export class MarketClient {
     const base = mode === 'mock-server' ? s.mockBaseUrl : s.dataBaseUrl;
 
     // پایهٔ تنظیمات اول امتحان می‌شود؛ اگر جواب نداد، پراکسی هم‌مبدأ همین سرور
-    // (که خودش Bybit → OKX → Binance-Futures را زنجیره می‌کند) و در نهایت مسیر مستقیم.
+    // (که خودش Bybit → OKX را زنجیره می‌کند) و در نهایت مسیر مستقیم.
     const errors = [];
     for (const candidate of this.liveBases(base, mode)) {
       const tickerUrl = this.buildUrl(candidate, this.interpolate(s.tickerPath, symbol));

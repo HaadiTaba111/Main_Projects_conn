@@ -40,7 +40,7 @@ async function fetchJsonFallback(fetcher, candidates) {
 }
 
 /**
- * رادار پمپ/دامپ — کل بازار با failover (پراکسی سرور → مستقیم؛ Bybit → Binance → OKX → CoinGecko).
+ * رادار پمپ/دامپ — کل بازار با failover (پراکسی سرور → مستقیم؛ Bybit → Binance → OKX).
  * این ماژول در این پروژه مستقل زندگی می‌کند و با اتوتریدر Futures Scalp Lab
  * هیچ runtime مشترکی ندارد؛ تنها راه ارتباط (اختیاری) پل HTTP یک‌طرفه است.
  */
@@ -163,24 +163,6 @@ export class PumpRadar {
     }
     if (okx) failures.push('OKX: پاسخ بازار خالی/نامعتبر');
 
-    // ۴) CoinGecko markets endpoint — منبع جایگزین، نه دادهٔ ساختگی
-    const coinGecko = await source(
-      'CoinGecko',
-      '/api/market/coingecko/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h',
-      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
-    );
-    if (Array.isArray(coinGecko?.body) && coinGecko.body.length) {
-      const rows = coinGecko.body
-        .filter(r => r.symbol && num(r.current_price) !== null)
-        .map(r => ({
-          symbol: `${String(r.symbol).toUpperCase()}USDT`,
-          price: Number(r.current_price),
-          turnover24h: num(r.total_volume) || 0,
-          change24hPct: num(r.price_change_percentage_24h)
-        }));
-      if (rows.length) return { rows, source: `COINGECKO LIVE (${coinGecko.route})` };
-    }
-    if (coinGecko) failures.push('CoinGecko: پاسخ بازار خالی/نامعتبر');
     throw new Error(`رادار: هیچ منبع زنده پاسخ نداد — ${failures.join(' | ')}`);
   }
 

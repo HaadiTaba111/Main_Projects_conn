@@ -153,8 +153,8 @@ class CubePreviewWiringTests(unittest.TestCase):
         specs = get_effect_specs()
         self.assertTrue(specs, "فهرست افکت‌ها نباید خالی باشد")
         self.assertEqual(specs[0]["id"], "fireworks", "افکت اول فهرست باید آتش‌بازی باشد")
-        labels = [trigger["label"] for trigger in specs[0]["manual_triggers"]]
-        self.assertTrue(any("🎆" in label for label in labels), labels)
+        # دکمه‌های دستی آتش‌بازی (کلید ۵) حذف شده‌اند؛ افکت اول همچنان آتش‌بازی است.
+        self.assertEqual(specs[0]["manual_triggers"], [])
 
     def test_ass_export_supports_new_presets_and_strips_markers(self):
         """خروجی FFmpeg/ASS هم چرخش رو به بالا و هم کلمه‌به‌کلمه را می‌شناسد و *ستاره*ها را چاپ نمی‌کند."""

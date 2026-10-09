@@ -71,7 +71,7 @@ export class ScalpLabApp {
     const mode = this.settings.value.dataMode;
     if (mode === 'mock-local') return 'MOCK LOCAL';
     if (mode === 'mock-server') return 'MOCK SERVER';
-    return 'LIVE'; // failover واقعی: Bybit → OKX → Binance (منبع دقیق در تب Data Feed)
+    return 'LIVE'; // failover واقعی: Bybit → OKX (منبع دقیق در تب Data Feed)
   }
 
   timeframeLabel() {
@@ -290,10 +290,7 @@ export class ScalpLabApp {
       { name: 'سرور محلی (/api/health)', url: '/api/health' },
       { name: 'Bybit (پراکسی سرور + زنجیرهٔ صرافی‌ها)', url: '/api/bybit/v5/market/tickers?category=linear&symbol=BTCUSDT' },
       { name: 'OKX (پراکسی سرور)', url: '/api/okx/api/v5/market/tickers?instId=BTC-USDT' },
-      { name: 'Binance (پراکسی سرور)', url: '/api/binance/api/v3/ticker/24hr?symbol=BTCUSDT' },
       { name: 'OKX (مستقیم از مرورگر)', url: 'https://www.okx.com/api/v5/market/tickers?instId=BTC-USDT' },
-      { name: 'Binance (مستقیم از مرورگر)', url: 'https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT' },
-      { name: 'CoinGecko (مستقیم از مرورگر)', url: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd' }
     ];
     const results = [];
     for (const check of checks) {

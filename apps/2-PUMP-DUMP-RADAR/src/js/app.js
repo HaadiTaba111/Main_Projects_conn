@@ -239,11 +239,9 @@ export class PumpDumpApp {
       { name: 'Bybit (پراکسی سرور)', url: '/api/market/bybit/v5/market/tickers?category=linear' },
       { name: 'Binance (پراکسی سرور)', url: '/api/market/binance/api/v3/ticker/24hr' },
       { name: 'OKX (پراکسی سرور)', url: '/api/market/okx/api/v5/market/tickers?instType=SPOT' },
-      { name: 'CoinGecko (پراکسی سرور)', url: '/api/market/coingecko/api/v3/coins/markets?vs_currency=usd&per_page=5&page=1' },
       { name: 'Bybit (مستقیم از مرورگر)', url: 'https://api.bybit.com/v5/market/tickers?category=linear' },
       { name: 'Binance (مستقیم از مرورگر)', url: 'https://api.binance.com/api/v3/ticker/24hr' },
       { name: 'OKX (مستقیم از مرورگر)', url: 'https://www.okx.com/api/v5/market/tickers?instType=SPOT' },
-      { name: 'CoinGecko (مستقیم از مرورگر)', url: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd' }
     ];
     const results = [];
     for (const check of checks) {
