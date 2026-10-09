@@ -1,4 +1,6 @@
 export const DEFAULT_SETTINGS = Object.freeze({
+  // نسخهٔ شِمای تنظیمات: با هر تغییر پیش‌فرض‌های ذخیره‌شده یک‌بار مهاجرت می‌شوند (settings-store.js)
+  settingsVersion: 2,
   // LIVE is intentional: the app never silently falls back to synthetic candles.
   dataMode: 'live',
   dataBaseUrl: '/api/bybit',
@@ -61,6 +63,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   paperInitialEquity: 1000,
   orderMargin: 40,
   leverage: 5,
+  // فیوچرز ایزوله: قیمت لیکویید = ورود × (1 ∓ 1/اهرم ± MMR). Bybit BTC/ETH ≈ ۰٫۵٪
+  maintenanceMarginPct: 0.5,
+  // فاندینگ هر ۸ ساعت (Bybit/OKX پیش‌فرض)؛ نرخ از تیکر صرافی خوانده می‌شود
+  fundingIntervalHours: 8,
   feeOpenPct: 0.055,
   feeClosePct: 0.055,
   slippagePct: 0.02,
@@ -107,14 +113,15 @@ export const RISK_PROFILES = Object.freeze({
     dailyLossLimitPct: 1.5,
     maxOpenPositions: 2
   }),
+  // پروفایل متوسط = همان پیش‌فرض‌های DEFAULT_SETTINGS (قبلاً این دو با هم نمی‌خواندند)
   medium: Object.freeze({
-    minScore: 72,
-    minMovePct: 0.18,
-    volumeSpikeX: 1.65,
-    atrStopMult: 1.25,
-    takeProfitR: 1.35,
-    cooldownSec: 150,
-    maxHoldMinutes: 20,
+    minScore: 85,
+    minMovePct: 0.45,
+    volumeSpikeX: 1.8,
+    atrStopMult: 2.2,
+    takeProfitR: 2.0,
+    cooldownSec: 300,
+    maxHoldMinutes: 120,
     orderMargin: 40,
     leverage: 5,
     dailyLossLimitPct: 3,

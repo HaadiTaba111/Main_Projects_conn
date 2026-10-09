@@ -1046,6 +1046,7 @@ console.log('\n۲۱) 🤖 سرتاسری: دیتای خودکار صرافی + �
       removeItem: key => { storage.delete(key); }
     };
     localStorage.setItem('scalp.lab.settings.v3', JSON.stringify({
+      settingsVersion: 2, // کاربر نسخهٔ فعلی: تایم‌فریم ۶۰ انتخاب شده و مهاجرت نباید آن را تغییر دهد
       dataMode: 'live', dataBaseUrl: '/api/bybit', symbols: ['BTCUSDT'], timeframe: '60',
       minScore: 40, scanIntervalSec: 3, microCandleCheck: 'false', useClosedCandle: 'true',
       paperAutoDefault: 'true'

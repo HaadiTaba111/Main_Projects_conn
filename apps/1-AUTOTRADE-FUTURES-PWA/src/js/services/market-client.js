@@ -331,7 +331,9 @@ export class MarketClient {
             markPrice: tickerRow?.markPrice || null,
             indexPrice: tickerRow?.indexPrice || null,
             volume24h: tickerRow?.volume24h || null,
-            turnover24h: tickerRow?.turnover24h || null
+            turnover24h: tickerRow?.turnover24h || null,
+            fundingRate: tickerRow?.fundingRate ?? null,
+            nextFundingTime: tickerRow?.nextFundingTime ?? null
           }
         }, s.timeframe, { dropForming: s.useClosedCandle === 'true' });
         if (price && normalized.candles.length >= 10) {

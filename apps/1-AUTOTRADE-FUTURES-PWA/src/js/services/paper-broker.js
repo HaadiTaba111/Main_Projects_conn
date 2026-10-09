@@ -147,6 +147,30 @@ export class PaperBroker {
     }
   }
 
+  // ⚠️ لیکویید ایزوله: قیمت لیکویید از ورود، اهرم و MMR محاسبه می‌شود.
+  liquidationPrice(side, entry, leverage, mmrPct = 0.5) {
+    const lev = Number(leverage) > 0 ? Number(leverage) : 1;
+    const mmr = Math.max(0, Number(mmrPct) || 0) / 100;
+    const e = Number(entry);
+    return side === 'LONG' ? e * (1 - 1 / lev + mmr) : e * (1 + 1 / lev - mmr);
+  }
+
+  // 💸 فاندینگ: در هر به‌روزرسانی، هزینهٔ زمان سپری‌شده از آخرین بار را با نرخ فاندینگ
+  // تیکر صرافی (Bybit) حساب می‌کنیم. LONG وقتی نرخ مثبت است پرداخت می‌کند، SHORT دریافت.
+  // اگر نرخی نباشد (مثلاً مسیر OKX) چیزی حساب نمی‌شود. سقف ۲۴ ساعت برای جلوگیری از داده‌ی کهنه.
+  accrueFunding(position, market, nowT) {
+    const rate = Number(market?.tickerRaw?.fundingRate);
+    const last = Number(position.fundingTs) || nowT;
+    const elapsed = Math.min(Math.max(0, nowT - last), 24 * 3600000);
+    position.fundingTs = nowT;
+    if (!Number.isFinite(rate) || rate === 0 || elapsed <= 0) return 0;
+    const intervalMs = Math.max(1, Number(this.s.value.fundingIntervalHours) || 8) * 3600000;
+    const mark = Number(market.price) || Number(position.entry);
+    const cost = mark * Number(position.qty) * rate * (elapsed / intervalMs) * (position.side === 'LONG' ? 1 : -1);
+    position.fundingPaid = Number(position.fundingPaid || 0) + cost;
+    return cost;
+  }
+
   oneWayFee(notional, percentage) {
     return Math.abs(Number(notional)) * (Number(percentage) / 100);
   }
@@ -163,14 +187,15 @@ export class PaperBroker {
   // This is the cash/equity delta at a mark. Opening fee is already removed
   // from paperEquity when the position is opened, so it is not removed twice.
   markToMarketDelta(position, mark) {
-    return this.grossPnl(position, mark) - this.closeFee(position, mark);
+    return this.grossPnl(position, mark) - this.closeFee(position, mark) - Number(position.fundingPaid || 0);
   }
 
   // Net PnL shown for validation: gross movement minus both entry and exit fees.
   netPnl(position, mark) {
     return this.grossPnl(position, mark)
       - Number(position.openFee || 0)
-      - this.closeFee(position, mark);
+      - this.closeFee(position, mark)
+      - Number(position.fundingPaid || 0);
   }
 
   dailyLossExceeded() {
@@ -254,6 +279,10 @@ export class PaperBroker {
       // 🔒 قفل تایم‌فریم: پوزیشن برای همیشه با همان تایم‌فریمی که با آن باز شد،
       // مدیریت می‌شود — حتی اگر کاربر وسط معامله timeframe تنظیمات را عوض کند.
       tfMs: Number(signal.tfMs) || 0,
+      // ⚠️ لیکویید و 💸 فاندینگ (فیوچرز ایزوله)
+      liqPrice: this.liquidationPrice(signal.side, signal.entry, this.s.value.leverage, this.s.value.maintenanceMarginPct),
+      fundingPaid: 0,
+      fundingTs: this.now(),
       timeframe: String(this.s.value.timeframe),
       // 🪜 نردبان داده: منشا فعلی استاپ + رکورد پله‌های تصمیم این معامله
       stopSource: 'init',
@@ -288,7 +317,8 @@ export class PaperBroker {
     const gross = this.grossPnl(position, exit);
     const feeClose = this.closeFee(position, exit);
     const feeOpen = Number(position.openFee || 0);
-    const net = gross - feeOpen - feeClose;
+    const funding = Number(position.fundingPaid || 0);
+    const net = gross - feeOpen - feeClose - funding;
 
     // 📈 متریک کیفیت خروج: سود در «اوج» (highWater/lowWater) و چقدر از اوج پس داده شد
     const isLongPos = position.side === 'LONG';
@@ -300,7 +330,7 @@ export class PaperBroker {
     const givebackPct = peakNet > 0 ? Math.max(0, (1 - net / peakNet) * 100) : 0;
 
     // openFee has already been charged; here we settle gross PnL and exit fee.
-    this.state.paperEquity += gross - feeClose;
+    this.state.paperEquity += gross - feeClose - funding;
     this.state.feesPaid += feeClose;
     this.state.paperPositions = this.state.paperPositions.filter(item => item.id !== position.id);
     this.state.paperTrades.unshift({
@@ -313,6 +343,7 @@ export class PaperBroker {
       feeOpen,
       feeClose,
       fees: feeOpen + feeClose,
+      funding,
       pnl: net,
       peakPnl: Number(peakNet.toFixed(4)),
       givebackPct: Number(givebackPct.toFixed(2)),
@@ -417,6 +448,13 @@ export class PaperBroker {
       const tfMs = tfMinutesOf(position);
       const maxHoldMs = Math.max(baseMaxHoldMs, minHoldCandles * tfMs);
       // اسلیپیج خروج (علیه معامله‌گر) — همان slippagePct ورود، برای همه خروج‌های خودکار.
+      // 💸 فاندینگ زمان‌بندی‌شده، سپس ⚠️ لیکویید — قبل از هر خروج دیگری
+      this.accrueFunding(position, market, nowT);
+      const liqPx = Number(position.liqPrice);
+      if (liqPx > 0 && mark > 0 && (isLong ? mark <= liqPx : mark >= liqPx)) {
+        this.close(position, liqPx, 'LIQUIDATION');
+        continue;
+      }
       const slip = Math.max(0, Number(s.slippagePct) || 0) / 100;
       const adverse = price => (isLong ? price * (1 - slip) : price * (1 + slip));
       let exit = null;
