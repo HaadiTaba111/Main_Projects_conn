@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_URL="${LYRAX_REPO_URL:-https://github.com/HaadiTaba111/Main_Arena_conn.git}"
-BRANCH="${LYRAX_BRANCH:-arena/01a10c56-main-arena-conn}"
-INSTALL_DIR="${LYRAX_INSTALL_DIR:-$HOME/Main_Arena_conn}"
+REPO_URL="${LYRAX_REPO_URL:-https://github.com/HaadiTaba111/Main_Projects_conn.git}"
+BRANCH="${LYRAX_BRANCH:-arena/578b8ae6-main-projects-conn}"
+INSTALL_DIR="${LYRAX_INSTALL_DIR:-$HOME/Main_Projects_conn}"
 APP_REL="apps/3-LYRAX-CLIP-STUDIO"
 
 if command -v pkg >/dev/null 2>&1; then

@@ -9,7 +9,7 @@ version: 1.0.0
 doi: "10.5281/zenodo.22780163"
 date-released: 2026-09-16
 url: "https://doi.org/10.5281/zenodo.22780163"
-repository-code: "https://github.com/HaadiTaba111/Main_Arena_conn"
+repository-code: "https://github.com/HaadiTaba111/Main_Projects_conn"
 license: "Apache-2.0"
 keywords:
   - "continual learning"

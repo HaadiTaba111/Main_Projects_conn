@@ -9,8 +9,8 @@
 
 ## 🚀 دستور استقرار فوق‌سریع در PythonAnywhere:
 ```bash
-git clone -b arena/01a10c56-main-arena-conn https://github.com/HaadiTaba111/Main_Arena_conn.git
-cd Main_Arena_conn
+git clone -b arena/578b8ae6-main-projects-conn https://github.com/HaadiTaba111/Main_Projects_conn.git
+cd Main_Projects_conn
 # پاکسازی فایل‌های DSA برای امنیت ۱۰۰٪:
 rm -rf cl_*.py dsa_*.py benchmark_*.py apps/dsa-command-dashboard
 ```

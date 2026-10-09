@@ -1,6 +1,6 @@
 # اجرای اتوتریدر و رادار پامپ در Termux
 
-این راهنما برای شاخهٔ `arena/01a10c56-main-arena-conn` و پوشه‌های رسمی فعلی نوشته شده است. دو برنامهٔ Node.js مستقل‌اند و برای اجرا به کامپیوتر یا `npm install` نیاز ندارند.
+این راهنما برای شاخهٔ `arena/578b8ae6-main-projects-conn` و پوشه‌های رسمی فعلی نوشته شده است. دو برنامهٔ Node.js مستقل‌اند و برای اجرا به کامپیوتر یا `npm install` نیاز ندارند.
 
 ## ۱. نصب پیش‌نیازها
 
@@ -15,8 +15,8 @@ node -v   # Node.js 18 یا جدیدتر
 ## ۲. کلون شاخه
 
 ```bash
-git clone --depth 1 --branch arena/01a10c56-main-arena-conn https://github.com/HaadiTaba111/Main_Arena_conn.git
-cd Main_Arena_conn
+git clone --depth 1 --branch arena/578b8ae6-main-projects-conn https://github.com/HaadiTaba111/Main_Projects_conn.git
+cd Main_Projects_conn
 ```
 
 اگر ریپو خصوصی است، اول GitHub CLI را نصب و با جریان ورود مرورگری احراز هویت کن؛ نیازی به فرستادن یا ذخیرهٔ دستی توکن نیست:
@@ -34,14 +34,14 @@ gh auth setup-git
 در نشست اول Termux:
 
 ```bash
-cd ~/Main_Arena_conn
+cd ~/Main_Projects_conn
 bash 1-AUTOTRADE.sh
 ```
 
 برای اجرای هم‌زمان رادار، یک نشست تازه باز کن و بزن:
 
 ```bash
-cd ~/Main_Arena_conn
+cd ~/Main_Projects_conn
 bash 2-PUMP-RADAR.sh
 ```
 
@@ -62,25 +62,25 @@ bash 2-PUMP-RADAR.sh
 تست‌ها و بررسی نحو جاوااسکریپت، بدون نصب وابستگی خارجی:
 
 ```bash
-cd ~/Main_Arena_conn/apps/1-AUTOTRADE-FUTURES-PWA
+cd ~/Main_Projects_conn/apps/1-AUTOTRADE-FUTURES-PWA
 npm test && npm run check
 
-cd ~/Main_Arena_conn/apps/2-PUMP-DUMP-RADAR
+cd ~/Main_Projects_conn/apps/2-PUMP-DUMP-RADAR
 npm test && npm run check
 ```
 
 برای دریافت نسخهٔ بعدی:
 
 ```bash
-cd ~/Main_Arena_conn
-git pull --ff-only origin arena/01a10c56-main-arena-conn
+cd ~/Main_Projects_conn
+git pull --ff-only origin arena/578b8ae6-main-projects-conn
 ```
 
 ## عیب‌یابی کوتاه
 
 - `node: command not found`: `pkg install -y nodejs` را اجرا کن.
 - صفحه باز نمی‌شود: مطمئن شو سرور در نشست Termux هنوز در حال اجراست و آدرس/پورت درست است.
-- `destination path already exists`: وارد پوشهٔ موجود شو و `git pull --ff-only origin arena/01a10c56-main-arena-conn` بزن؛ برای حفظ فایل‌های گوشی پوشه را پاک نکن.
+- `destination path already exists`: وارد پوشهٔ موجود شو و `git pull --ff-only origin arena/578b8ae6-main-projects-conn` بزن؛ برای حفظ فایل‌های گوشی پوشه را پاک نکن.
 - خطای احراز هویت برای ریپوی خصوصی: از `gh auth login` و `gh auth setup-git` استفاده کن؛ رمز یا توکن را در چت نفرست.
 
 > **امنیت و ریسک مالی:** هر دو سرور بدون احراز هویت‌اند؛ فقط روی شبکهٔ مورداعتماد اجرا کن و پورت را عمومی نکن. اتوتریدر به‌صورت پیش‌فرض Paper است. تست و بک‌تست، سودآوری را تضمین نمی‌کنند. سفارش واقعی فقط از طریق Backend امنی که خودت پیکربندی کرده‌ای قابل تنظیم است؛ کلید خصوصی صرافی را در کد یا مرورگر قرار نده.

@@ -28,3 +28,6 @@ experience.db
 # DSA: فایل‌های محرمانه خارج از Git (فقط محلی؛ تاریخچهٔ Git دست‌نخورده است)
 Main_Arena_conn_current.zip
 apps/4-PERSIAN-POET-BRAIN/train_qwen_poet_dsa.py
+
+# داده‌ی شخصی معاملات (خروجی گزارش) — روی دیسک می‌ماند، وارد Git نمی‌شود
+trades_export.json

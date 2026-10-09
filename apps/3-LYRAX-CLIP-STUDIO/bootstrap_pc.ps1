@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
 
-$RepoUrl = if ($env:LYRAX_REPO_URL) { $env:LYRAX_REPO_URL } else { 'https://github.com/HaadiTaba111/Main_Arena_conn.git' }
-$Branch = if ($env:LYRAX_BRANCH) { $env:LYRAX_BRANCH } else { 'arena/01a10c56-main-arena-conn' }
-$InstallDir = if ($env:LYRAX_INSTALL_DIR) { $env:LYRAX_INSTALL_DIR } else { Join-Path $HOME 'Main_Arena_conn' }
+$RepoUrl = if ($env:LYRAX_REPO_URL) { $env:LYRAX_REPO_URL } else { 'https://github.com/HaadiTaba111/Main_Projects_conn.git' }
+$Branch = if ($env:LYRAX_BRANCH) { $env:LYRAX_BRANCH } else { 'arena/578b8ae6-main-projects-conn' }
+$InstallDir = if ($env:LYRAX_INSTALL_DIR) { $env:LYRAX_INSTALL_DIR } else { Join-Path $HOME 'Main_Projects_conn' }
 $AppRelativePath = Join-Path 'apps' '3-LYRAX-CLIP-STUDIO'
 
 # If this script is already inside a cloned checkout, use that copy. When run

@@ -15,8 +15,8 @@ if %errorlevel% equ 0 (
 )
 
 echo 📥 [1/4] در حال دریافت آخرین تغییرات از گیت‌هاب...
-git fetch origin refs/heads/arena/01a10c56-main-arena-conn
-git pull origin arena/01a10c56-main-arena-conn --no-rebase
+git fetch origin refs/heads/arena/578b8ae6-main-projects-conn
+git pull origin arena/578b8ae6-main-projects-conn --no-rebase
 
 echo.
 echo 💻 [2/4] باز کردن پروژه در VS Code...
@@ -44,7 +44,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo 🚀 [4/4] در حال ارسال خودکار (Push) به شاخه اصلی Arena...
-git push origin arena/01a10c56-main-arena-conn
+git push origin arena/578b8ae6-main-projects-conn
 
 echo.
 echo ═════════════════════════════════════════════════════════════════

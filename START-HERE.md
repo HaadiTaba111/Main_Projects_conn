@@ -7,14 +7,27 @@
 | اتوتریدر فیوچرز PWA (Paper پیش‌فرض) | `apps/1-AUTOTRADE-FUTURES-PWA/` | 8787 |
 | رادار پامپ/دامپ | `apps/2-PUMP-DUMP-RADAR/` | 8790 |
 
+## داشبورد (راه سریع برای همهٔ سیستم‌ها)
+
+```bash
+bash dashboard.sh          # Termux / Linux / WSL2   →  http://localhost:8700
+dashboard.bat              # Windows (داخل پوشهٔ ریپو دابل‌کلیک کن)
+```
+
+روی شمارهٔ هر سیستم (۱ تا ۵) بزن تا اجرا شود؛ کلیدهای ۱ تا ۵ هم همین کار را می‌کنند. دکمه‌های ■ توقف، 📜 لاگ و «اجرای تست‌ها» هم روی هر کارت هست.
+
+- پیش‌فرض فقط روی همین دستگاه باز است. برای گوشی یا شبکه: `HOST=0.0.0.0 bash dashboard.sh`
+- داشبورد فقط دستورهای تعریف‌شده در `dashboard/systems.json` را اجرا می‌کند.
+- برای اپ‌های ۴ و ۵ پوشهٔ `.dsa_vault` را دستی کپی کن (وارد Git نمی‌شود).
+
 ## کلون در Termux
 
 ```bash
 pkg update -y && pkg install -y git nodejs
 node -v   # نسخهٔ 18 یا جدیدتر
 
-git clone --depth 1 --branch arena/01a10c56-main-arena-conn https://github.com/HaadiTaba111/Main_Arena_conn.git
-cd Main_Arena_conn
+git clone --depth 1 --branch arena/578b8ae6-main-projects-conn https://github.com/HaadiTaba111/Main_Projects_conn.git
+cd Main_Projects_conn
 ```
 
 اگر ریپو خصوصی است، پیش از `git clone` با GitHub CLI وارد شو؛ توکن را در فایل یا چت ذخیره نکن:
@@ -36,7 +49,7 @@ bash 1-AUTOTRADE.sh
 در نشست دوم (برای اجرای هم‌زمان هر دو برنامه):
 
 ```bash
-cd ~/Main_Arena_conn
+cd ~/Main_Projects_conn
 bash 2-PUMP-RADAR.sh
 ```
 
@@ -50,9 +63,9 @@ bash 2-PUMP-RADAR.sh
 ## تست و به‌روزرسانی
 
 ```bash
-cd ~/Main_Arena_conn/apps/1-AUTOTRADE-FUTURES-PWA && npm test && npm run check
-cd ~/Main_Arena_conn/apps/2-PUMP-DUMP-RADAR && npm test && npm run check
-cd ~/Main_Arena_conn && git pull --ff-only origin arena/01a10c56-main-arena-conn
+cd ~/Main_Projects_conn/apps/1-AUTOTRADE-FUTURES-PWA && npm test && npm run check
+cd ~/Main_Projects_conn/apps/2-PUMP-DUMP-RADAR && npm test && npm run check
+cd ~/Main_Projects_conn && git pull --ff-only origin arena/578b8ae6-main-projects-conn
 ```
 
 برای تست‌ها `npm install` لازم نیست؛ پروژه‌ها به پکیج خارجی نیاز ندارند.

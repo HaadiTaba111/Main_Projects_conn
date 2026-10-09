@@ -340,7 +340,7 @@ class MasterLauncherService:
         logs = []
 
         try:
-            p_fetch = subprocess.run(["git", "fetch", "origin", "refs/heads/arena/01a10c56-main-arena-conn"], cwd=str(WORKSPACE_ROOT), capture_output=True, text=True)
+            p_fetch = subprocess.run(["git", "fetch", "origin", "refs/heads/arena/578b8ae6-main-projects-conn"], cwd=str(WORKSPACE_ROOT), capture_output=True, text=True)
             logs.append(f"[fetch]: {p_fetch.stdout or p_fetch.stderr or 'OK'}")
 
             p_add = subprocess.run(["git", "add", "-A"], cwd=str(WORKSPACE_ROOT), capture_output=True, text=True)
@@ -349,7 +349,7 @@ class MasterLauncherService:
             p_commit = subprocess.run(["git", "commit", "-m", msg], cwd=str(WORKSPACE_ROOT), capture_output=True, text=True)
             logs.append(f"[commit]: {p_commit.stdout or p_commit.stderr or 'No new changes'}")
 
-            p_push = subprocess.run(["git", "push", "origin", "arena/01a10c56-main-arena-conn"], cwd=str(WORKSPACE_ROOT), capture_output=True, text=True)
+            p_push = subprocess.run(["git", "push", "origin", "arena/578b8ae6-main-projects-conn"], cwd=str(WORKSPACE_ROOT), capture_output=True, text=True)
             logs.append(f"[push]: {p_push.stdout or p_push.stderr or 'Pushed successfully!'}")
 
             success = p_push.returncode == 0

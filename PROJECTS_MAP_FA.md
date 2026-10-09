@@ -1,8 +1,8 @@
 # 🗺️ نقشهٔ پروژه‌های TaHa111
 
-مخزن: `HaadiTaba111/Main_Arena_conn`
+مخزن: `HaadiTaba111/Main_Projects_conn`
 
-شاخهٔ این انتشار: `arena/01a10c56-main-arena-conn`
+شاخهٔ این انتشار: `arena/578b8ae6-main-projects-conn`
 
 ## برنامه‌های شاخص
 
@@ -20,8 +20,8 @@
 
 ```bash
 pkg update -y && pkg install -y git nodejs
-git clone --depth 1 --branch arena/01a10c56-main-arena-conn https://github.com/HaadiTaba111/Main_Arena_conn.git
-cd Main_Arena_conn
+git clone --depth 1 --branch arena/578b8ae6-main-projects-conn https://github.com/HaadiTaba111/Main_Projects_conn.git
+cd Main_Projects_conn
 bash 1-AUTOTRADE.sh       # پورت 8787؛ نشست اول
 bash 2-PUMP-RADAR.sh      # پورت 8790؛ در نشست دوم
 ```

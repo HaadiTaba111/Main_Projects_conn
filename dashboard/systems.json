@@ -1,0 +1,150 @@
+[
+  {
+    "id": "1",
+    "name": "اتوتریدر فیوچرز (Paper)",
+    "description": "PWA معامله‌ی مجازی فیوچرز — پیش‌فرض Paper",
+    "kind": "server",
+    "folder": "apps/1-AUTOTRADE-FUTURES-PWA",
+    "command": "node",
+    "args": [
+      "server.js"
+    ],
+    "port": 8787,
+    "env": {
+      "PORT": "8787"
+    },
+    "actions": [
+      {
+        "id": "test",
+        "label": "اجرای تست‌ها",
+        "args": [
+          "test/selftest.mjs"
+        ]
+      },
+      {
+        "id": "check",
+        "label": "بررسی سینتکس سرور",
+        "args": [
+          "--check",
+          "server.js"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "name": "رادار پامپ/دامپ",
+    "description": "اسکن بازار و سیگنال پامپ/دامپ (مستقل از اتوتریدر)",
+    "kind": "server",
+    "folder": "apps/2-PUMP-DUMP-RADAR",
+    "command": "node",
+    "args": [
+      "server.js"
+    ],
+    "port": 8790,
+    "env": {
+      "PORT": "8790"
+    },
+    "actions": [
+      {
+        "id": "test",
+        "label": "اجرای تست‌ها",
+        "args": [
+          "test/selftest.mjs"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "3",
+    "name": "Lyrax Clip Studio",
+    "description": "استودیوی ویدیو/لیریکس و افکت‌های رعد و آتش‌بازی",
+    "kind": "server",
+    "folder": "apps/3-LYRAX-CLIP-STUDIO",
+    "command": "python",
+    "args": [
+      "app.py"
+    ],
+    "port": 5000,
+    "env": {
+      "CLIP_STUDIO_PORT": "5000",
+      "CLIP_STUDIO_HOST": "${HOST}"
+    },
+    "actions": [
+      {
+        "id": "test",
+        "label": "اجرای تست‌ها",
+        "args": [
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "4",
+    "name": "مغز شاعر فارسی (Poet)",
+    "description": "چت زنده و ابزارهای سنجش شاعر — بدون سرور؛ فقط تست و سنجش",
+    "kind": "tool",
+    "folder": "apps/4-PERSIAN-POET-BRAIN",
+    "command": "python",
+    "args": [],
+    "port": null,
+    "env": {},
+    "actions": [
+      {
+        "id": "test",
+        "label": "اجرای تست‌ها (بدون GPU)",
+        "args": [
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests"
+        ]
+      },
+      {
+        "id": "eval",
+        "label": "گزارش سنجش پیوسته",
+        "args": [
+          "continual/continual_eval.py"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "5",
+    "name": "دست و چشم Qwen (Eye/Hand Agent)",
+    "description": "ایجنت داشبورد دست و چشم — نیاز به تنظیم config و دسترسی‌های محلی",
+    "kind": "server",
+    "folder": "apps/5-QWEN-HANDS-EYES",
+    "command": "python",
+    "args": [
+      "main.py",
+      "--config",
+      "config/config.json",
+      "--port",
+      "8765",
+      "--host",
+      "${HOST}"
+    ],
+    "port": 8765,
+    "env": {},
+    "actions": [
+      {
+        "id": "test",
+        "label": "اجرای تست‌ها",
+        "args": [
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests"
+        ]
+      }
+    ]
+  }
+]

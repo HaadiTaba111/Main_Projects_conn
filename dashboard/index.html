@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>داشبورد سیستم‌ها</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Tahoma, "Segoe UI", system-ui, sans-serif; background: #0d1117; color: #e6edf3; }
+  header { padding: 18px 20px 8px; }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  .sub { color: #8b949e; font-size: 13px; }
+  .grid { display: grid; gap: 14px; padding: 14px 20px 30px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .card.running { border-color: #2ea043; box-shadow: 0 0 0 1px #2ea04355 inset; }
+  .top { display: flex; align-items: center; gap: 12px; }
+  .num { width: 52px; height: 52px; border-radius: 12px; border: 0; font-size: 26px; font-weight: 700;
+         background: #21262d; color: #e6edf3; cursor: pointer; flex: 0 0 auto; }
+  .num:hover { background: #2f81f7; }
+  .num:focus-visible { outline: 2px solid #2f81f7; outline-offset: 2px; }
+  .title { font-size: 16px; font-weight: 600; }
+  .desc { color: #8b949e; font-size: 12px; margin-top: 2px; line-height: 1.6; }
+  .pill { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: #21262d; color: #8b949e; margin-top: 4px; }
+  .pill.on { background: #1f6f3a; color: #d2f8dc; }
+  .pill.busy { background: #6e4b00; color: #ffe2a6; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  button.b { background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+  button.b:hover:not(:disabled) { border-color: #2f81f7; }
+  button.b:disabled { opacity: .45; cursor: default; }
+  button.b.go { background: #1f6f3a; border-color: #2ea043; }
+  button.b.stop { background: #6e2a2a; border-color: #da3633; }
+  a.open { color: #58a6ff; font-size: 13px; text-decoration: none; padding: 6px 4px; }
+  pre.log { background: #0a0d12; border: 1px solid #21262d; border-radius: 8px; padding: 8px; height: 180px; overflow: auto;
+            font-size: 11.5px; line-height: 1.5; direction: ltr; text-align: left; white-space: pre-wrap; margin: 0; color: #c9d1d9; }
+  .hint { color: #8b949e; font-size: 12px; padding: 0 20px 20px; }
+  kbd { background: #21262d; border: 1px solid #30363d; border-radius: 4px; padding: 0 5px; font-size: 11px; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #21262d; border: 1px solid #30363d;
+           padding: 10px 14px; border-radius: 10px; font-size: 13px; display: none; max-width: 90vw; }
+  #toast.show { display: block; }
+  #toast.err { border-color: #da3633; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧭 داشبورد سیستم‌ها</h1>
+  <div class="sub">روی شمارهٔ هر سیستم بزن تا اجرا شود. کلیدهای <kbd>1</kbd> تا <kbd>5</kbd> هم همین کار را می‌کنند.</div>
+</header>
+<main class="grid" id="grid"></main>
+<div class="hint">
+  اگر سیستمی در حال اجراست، شمارهٔ آن باز کردن آدرسش را انجام می‌دهد. برای توقف از دکمهٔ ■ استفاده کن.
+  برای باز کردن از گوشی یا شبکه، داشبورد را با <code>HOST=0.0.0.0</code> اجرا کن.
+</div>
+<div id="toast"></div>
+
+<script>
+const grid = document.getElementById('grid');
+const toastEl = document.getElementById('toast');
+const openLogs = new Set();
+let systems = [];
+let dashHost = '';
+
+function toast(msg, isErr = false) {
+  toastEl.textContent = msg;
+  toastEl.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toastEl.className = ''; }, 3500);
+}
+
+async function api(path, method = 'GET') {
+  const opts = { method, headers: {} };
+  if (method === 'POST') { opts.headers['x-dashboard'] = '1'; }
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) throw new Error(data.error || `خطا ${res.status}`);
+  return data;
+}
+
+function openUrl(sys) {
+  return `http://${location.hostname}:${sys.port}`;
+}
+
+function statusText(sys) {
+  if (sys.kind === 'tool') {
+    if (sys.job && sys.job.running) return { text: `در حال اجرا: ${sys.job.label}`, cls: 'busy' };
+    if (sys.job && sys.job.code === 0) return { text: 'آخرین اجرا: موفق', cls: 'on' };
+    if (sys.job && sys.job.code !== null) return { text: 'آخرین اجرا: ناموفق', cls: '' };
+    return { text: 'بدون سرور — فقط عملیات', cls: '' };
+  }
+  if (sys.running && sys.listening) return { text: `روشن · پورت ${sys.port}`, cls: 'on' };
+  if (sys.running) return { text: 'در حال راه‌اندازی…', cls: 'busy' };
+  if (sys.listening) return { text: `پورت ${sys.port} توسط برنامهٔ دیگری باز است`, cls: 'busy' };
+  if (sys.lastExit) return { text: `خاموش (کد ${sys.lastExit.code ?? sys.lastExit.signal})`, cls: '' };
+  return { text: 'خاموش', cls: '' };
+}
+
+function render() {
+  grid.innerHTML = '';
+  for (const sys of systems) {
+    const card = document.createElement('section');
+    card.className = 'card' + (sys.running ? ' running' : '');
+    const st = statusText(sys);
+    const busy = sys.job && sys.job.running;
+
+    const top = document.createElement('div');
+    top.className = 'top';
+    const num = document.createElement('button');
+    num.className = 'num';
+    num.textContent = sys.id;
+    num.title = sys.kind === 'server' ? 'اجرا / باز کردن' : 'اجرای تست';
+    num.setAttribute('aria-label', `سیستم ${sys.id}: ${sys.name}`);
+    num.onclick = () => quickRun(sys);
+    const info = document.createElement('div');
+    info.innerHTML = `<div class="title"></div><div class="desc"></div><span class="pill ${st.cls}"></span>`;
+    info.querySelector('.title').textContent = sys.name;
+    info.querySelector('.desc').textContent = sys.description;
+    info.querySelector('.pill').textContent = st.text;
+    top.append(num, info);
+    card.append(top);
+
+    const btns = document.createElement('div');
+    btns.className = 'btns';
+    if (sys.kind === 'server') {
+      const start = mkBtn(sys.running ? 'در حال اجرا' : '▶ اجرا', 'go', () => act(`/api/systems/${sys.id}/start`, 'اجرا شد'), sys.running || busy);
+      const stop = mkBtn('■ توقف', 'stop', () => act(`/api/systems/${sys.id}/stop`, 'توقف شد'), !sys.running);
+      btns.append(start, stop);
+      if (sys.running || sys.listening) {
+        const a = document.createElement('a');
+        a.className = 'open'; a.href = openUrl(sys); a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = `🌐 باز کردن :${sys.port}`;
+        btns.append(a);
+      }
+    }
+    for (const action of sys.actions) {
+      btns.append(mkBtn(action.label, '', () => act(`/api/systems/${sys.id}/run/${action.id}`, 'عملیات شروع شد'), busy));
+    }
+    btns.append(mkBtn(openLogs.has(sys.id) ? 'بستن لاگ' : '📜 لاگ', '', () => toggleLog(sys.id), false));
+    card.append(btns);
+
+    if (openLogs.has(sys.id)) {
+      const pre = document.createElement('pre');
+      pre.className = 'log';
+      pre.dataset.id = sys.id;
+      card.append(pre);
+    }
+    grid.append(card);
+  }
+  for (const id of openLogs) refreshLog(id);
+}
+
+function mkBtn(label, cls, onClick, disabled) {
+  const b = document.createElement('button');
+  b.className = 'b ' + cls;
+  b.textContent = label;
+  b.disabled = !!disabled;
+  b.onclick = onClick;
+  return b;
+}
+
+async function act(path, okMsg) {
+  try {
+    await api(path, 'POST');
+    toast(okMsg);
+  } catch (e) {
+    toast(e.message, true);
+  }
+  await load();
+}
+
+function quickRun(sys) {
+  if (sys.kind === 'server') {
+    if (sys.running) { window.open(openUrl(sys), '_blank', 'noopener'); return; }
+    act(`/api/systems/${sys.id}/start`, `${sys.name} در حال اجراست`);
+  } else if (sys.actions.length) {
+    act(`/api/systems/${sys.id}/run/${sys.actions[0].id}`, 'عملیات شروع شد');
+  }
+}
+
+function toggleLog(id) {
+  if (openLogs.has(id)) openLogs.delete(id); else openLogs.add(id);
+  render();
+}
+
+async function refreshLog(id) {
+  try {
+    const data = await api(`/api/systems/${id}/log`);
+    const pre = grid.querySelector(`pre.log[data-id="${id}"]`);
+    if (pre) {
+      const atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 20;
+      pre.textContent = data.lines.join('\n') || '(لاگی نیست)';
+      if (atBottom) pre.scrollTop = pre.scrollHeight;
+    }
+  } catch { /* ignore */ }
+}
+
+async function load() {
+  try {
+    const data = await api('/api/systems');
+    dashHost = data.host;
+    systems = data.systems;
+    render();
+  } catch (e) {
+    toast('ارتباط با داشبورد قطع شد: ' + e.message, true);
+  }
+}
+
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const sys = systems.find(s => s.id === e.key);
+  if (sys) quickRun(sys);
+});
+
+load();
+setInterval(load, 3000);
+</script>
+</body>
+</html>

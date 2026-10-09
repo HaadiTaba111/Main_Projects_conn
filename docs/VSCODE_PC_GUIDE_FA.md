@@ -51,7 +51,7 @@
 
 ## 🔵 روش ۲ — کلون ریپوی خصوصی با VSCode (کل سورس + تاریخچه)
 
-> برای وقتی که کل ریپوی `Main_Arena_conn` (شامل DSA و همه پروژه‌ها) را روی PC می‌خواهی. لاگین با مرورگر انجام می‌شود — **هیچ پسوردی تایپ نمی‌شود.**
+> برای وقتی که کل ریپوی `Main_Projects_conn` (همه پروژه‌ها) را روی PC می‌خواهی. توجه: فایل‌های محرمانهٔ DSA داخل ریپو نیستند؛ پوشهٔ `.dsa_vault` را جداگانه و دستی از همین سیستم کپی کن. لاگین با مرورگر انجام می‌شود — **هیچ پسوردی تایپ نمی‌شود.**
 
 1. VSCode را باز کن → کلید **Ctrl + Shift + P** → تایپ کن:
    ```
@@ -59,7 +59,7 @@
    ```
    → Enter → این آدرس را بچسبان:
    ```
-   https://github.com/HaadiTaba111/Main_Arena_conn.git
+   https://github.com/HaadiTaba111/Main_Projects_conn.git
    ```
    → Enter → یک پوشه برای ذخیره انتخاب کن (مثلاً `C:\Projects`).
 2. پنجرهٔ مرورگر باز می‌شود → **Sign in to GitHub** (با اکانتی که لاگینی) → **Authorize** → برمی‌گردی به VSCode → **Open** / **Yes, I trust the authors**.
@@ -91,7 +91,7 @@ npm test
 - **🔐 روش ترمینالی با ذخیرهٔ پسورد (بار اول فقط!):** اگر خواستی در CMD/PowerShell کلون کنی، اول یک‌بار بزن:
   ```
   git config --global credential.helper store
-  git clone -b arena/01a0f214-main-arena-conn https://github.com/HaadiTaba111/Main_Arena_conn.git
+  git clone -b arena/01a0f214-main-arena-conn https://github.com/HaadiTaba111/Main_Projects_conn.git
   ```
   موقع کلون فقط **بار اول** می‌پرسد: Username = `HaadiTaba111`، Password = **توکن** (نه پسورد اکانت؛ توکن را از GitHub → Settings → Developer settings → Personal access tokens بساز — در چت برای ایجنت نفرست!). ویندوز آن را ذخیره می‌کند و از دفعهٔ بعد (`git pull` و...) دیگر نمی‌پرسد. (حذف ذخیره: `cmdkey /list | findstr git` و پاک کردن از Credential Manager، یا فایل `%USERPROFILE%\.git-credentials`.)
 - **پورت مشغول (`EADDRINUSE`)** → یک `node server.js` دیگر از قبل روشن است؛ پنجرهٔ قبلی را ببند یا Ctrl+C بزن.

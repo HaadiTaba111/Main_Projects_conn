@@ -3,7 +3,7 @@
 set -u
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-BRANCH="arena/01a10c56-main-arena-conn"
+BRANCH="arena/578b8ae6-main-projects-conn"
 
 clear 2>/dev/null || true
 echo "============================================================"

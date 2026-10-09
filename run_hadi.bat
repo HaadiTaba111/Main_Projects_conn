@@ -47,7 +47,7 @@ if "%choice%"=="5" (
 if "%choice%"=="6" (
     echo.
     echo 🔄 در حال دریافت آخرین آپدیت‌ها از گیت‌هاب...
-    git pull --ff-only origin arena/01a10c56-main-arena-conn
+    git pull --ff-only origin arena/578b8ae6-main-projects-conn
     echo ✅ همه‌چیز به‌روزرسانی شد!
     pause
 )

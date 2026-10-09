@@ -19,8 +19,8 @@
 
 ```bash
 pkg update -y && pkg install -y curl
-export LYRAX_BRANCH="arena/01a10c56-main-arena-conn"
-curl -fsSL "https://raw.githubusercontent.com/HaadiTaba111/Main_Arena_conn/${LYRAX_BRANCH}/apps/3-LYRAX-CLIP-STUDIO/bootstrap_termux.sh" | bash
+export LYRAX_BRANCH="arena/578b8ae6-main-projects-conn"
+curl -fsSL "https://raw.githubusercontent.com/HaadiTaba111/Main_Projects_conn/${LYRAX_BRANCH}/apps/3-LYRAX-CLIP-STUDIO/bootstrap_termux.sh" | bash
 ```
 
 پس از شروع سرور، در مرورگر همان گوشی باز کنید:
@@ -36,8 +36,8 @@ http://127.0.0.1:5000
 در PowerShell (با Git و Python 3 نصب‌شده) اجرا کنید:
 
 ```powershell
-$env:LYRAX_BRANCH = 'arena/01a10c56-main-arena-conn'
-$url = "https://raw.githubusercontent.com/HaadiTaba111/Main_Arena_conn/$($env:LYRAX_BRANCH)/apps/3-LYRAX-CLIP-STUDIO/bootstrap_pc.ps1"
+$env:LYRAX_BRANCH = 'arena/578b8ae6-main-projects-conn'
+$url = "https://raw.githubusercontent.com/HaadiTaba111/Main_Projects_conn/$($env:LYRAX_BRANCH)/apps/3-LYRAX-CLIP-STUDIO/bootstrap_pc.ps1"
 Invoke-Expression (Invoke-RestMethod $url)
 ```
 
@@ -48,8 +48,8 @@ Invoke-Expression (Invoke-RestMethod $url)
 به Git و Python 3 نیاز است:
 
 ```bash
-export LYRAX_BRANCH="arena/01a10c56-main-arena-conn"
-curl -fsSL "https://raw.githubusercontent.com/HaadiTaba111/Main_Arena_conn/${LYRAX_BRANCH}/apps/3-LYRAX-CLIP-STUDIO/bootstrap_pc.sh" | bash
+export LYRAX_BRANCH="arena/578b8ae6-main-projects-conn"
+curl -fsSL "https://raw.githubusercontent.com/HaadiTaba111/Main_Projects_conn/${LYRAX_BRANCH}/apps/3-LYRAX-CLIP-STUDIO/bootstrap_pc.sh" | bash
 ```
 
 برای نصب دستی/اجرای دوباره، از پوشه‌ی برنامه `./start_clip_studio.sh` را اجرا کنید. در Windows نیز `start_clip_studio.bat` اجراکننده‌ی محیط نصب‌شده است.
