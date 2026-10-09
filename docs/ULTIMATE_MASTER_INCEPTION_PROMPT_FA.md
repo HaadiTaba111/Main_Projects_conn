@@ -25,7 +25,7 @@
 - **سند رسمی Zenodo:** شناسه `DOI: 10.5281/zenodo.22780163` (منتشرشده ۱۶ سپتامبر ۲۰۲۶).
 - **شناسه رسمی ORCID:** شناسه `0009-0006-0210-7479` بنام Hadi Tabatabaei.
 - **ماتریس استتار (Stealth Deception):** هرگز از کلمات عامیانه اسپیرال استفاده نکن؛ نام رسمی: *Non-Euclidean Topological State-Space Framework governed by Stochastic Synaptic Attenuation with Non-Zero Retention Floors*.
-- **هسته محرمانه در `dsa-security/`:** ثوابت $\lambda=0.15, \gamma=0.40, w_{\min}=0.15, N^*=12$ کاملاً قرنطینه است و برای ارزیابی‌های بیرونی فقط از رابط بلک‌باکس `dsa_sharif_evaluator_kit.py` و `sample_professor_benchmark.py` استفاده می‌شود.
+- **هسته محرمانه در `dsa-security/`:** ثوابت (λ، γ، w_min و N*) کاملاً قرنطینه‌اند و در گاوصندوق نگهداری می‌شوند و برای ارزیابی‌های بیرونی فقط از رابط بلک‌باکس `dsa_sharif_evaluator_kit.py` و `sample_professor_benchmark.py` استفاده می‌شود.
 
 ---
 

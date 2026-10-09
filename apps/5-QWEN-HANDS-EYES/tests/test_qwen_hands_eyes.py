@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from config.dsa_params import load_dsa_params
 from config.settings import AppConfig
 from core.approval_guard import ApprovalGuard
 from core.brain_router import DualBrainRouter
@@ -38,17 +39,18 @@ class TestQwenHandsEyes(unittest.TestCase):
         self.assertTrue(cfg.eyes.enabled)
         self.assertTrue(cfg.hands.enabled)
         self.assertTrue(cfg.feet.enabled)
-        self.assertEqual(cfg.memory.dsa_lambda, 0.15)
-        self.assertEqual(cfg.memory.dsa_gamma, 0.4)
-        self.assertEqual(cfg.memory.dsa_min, 0.15)
+        params = load_dsa_params()
+        self.assertEqual(cfg.memory.dsa_lambda, params["lambda"])
+        self.assertEqual(cfg.memory.dsa_gamma, params["gamma"])
+        self.assertEqual(cfg.memory.dsa_min, params["min_weight"])
 
     def test_memory_engine_and_dsa_fade_not_forget(self):
         mem = MemoryEngine(
             db_path=self.config.memory.sqlite_path,
             dsa_enabled=True,
-            dsa_lambda=0.15,
-            dsa_gamma=0.4,
-            dsa_min=0.15,
+            dsa_lambda=load_dsa_params()["lambda"],
+            dsa_gamma=load_dsa_params()["gamma"],
+            dsa_min=load_dsa_params()["min_weight"],
         )
 
         # Save conversation

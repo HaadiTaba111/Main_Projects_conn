@@ -1,6 +1,6 @@
 """
 Memory Engine with SQLite Persistence and DSA 'Fade-Not-Forget' Dynamics.
-Implements DSA v4 memory retention constants: lambda=0.15, gamma=0.4, min_weight=0.15.
+Implements DSA v4 memory retention; constants are loaded from env/vault (config/dsa_params.py).
 """
 
 from __future__ import annotations
@@ -24,13 +24,20 @@ class MemoryEngine:
         self,
         db_path: str = ".qwen_hands_eyes/memory.sqlite",
         dsa_enabled: bool = True,
-        dsa_lambda: float = 0.15,
-        dsa_gamma: float = 0.4,
-        dsa_min: float = 0.15,
+        dsa_lambda: Optional[float] = None,
+        dsa_gamma: Optional[float] = None,
+        dsa_min: Optional[float] = None,
     ):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.dsa_enabled = dsa_enabled
+        if dsa_enabled and None in (dsa_lambda, dsa_gamma, dsa_min):
+            # از محیط/گاوصندوق بخوان؛ مقدار پیش‌فرض در کد وجود ندارد
+            from config.dsa_params import load_dsa_params
+            params = load_dsa_params()
+            dsa_lambda = params["lambda"] if dsa_lambda is None else dsa_lambda
+            dsa_gamma = params["gamma"] if dsa_gamma is None else dsa_gamma
+            dsa_min = params["min_weight"] if dsa_min is None else dsa_min
         self.dsa_lambda = dsa_lambda
         self.dsa_gamma = dsa_gamma
         self.dsa_min = dsa_min
@@ -104,7 +111,7 @@ class MemoryEngine:
         access_boost = min(1.5, 1.0 + math.log1p(access_count) * 0.1)
         decayed = self.dsa_gamma * math.exp(-self.dsa_lambda * age_days) * access_boost
 
-        # Floor constraint: Never forget below min_weight (0.15)
+        # Floor constraint: never forget below the configured min_weight
         return round(max(self.dsa_min, min(1.0, decayed)), 4)
 
     def save_message(self, session_id: str, role: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> int:

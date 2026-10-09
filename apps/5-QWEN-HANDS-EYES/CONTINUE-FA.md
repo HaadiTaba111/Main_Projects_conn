@@ -32,3 +32,6 @@ cd apps/5-QWEN-HANDS-EYES && python3 -m unittest discover -s tests
 - سخت‌سازی `approval_guard` قبل از فعال‌سازی `hands/` روی شبکهٔ عمومی.
 
 > ⚠️ هیچ‌وقت سرور را روی اینترنت عمومی باز نکن؛ دست‌ها (کنترل کامپیوتر) نیاز به تأیید دارند.
+
+## 🔒 پارامترهای DSA
+λ، γ و w_min در کد و `config.json` نیستند. `config/dsa_params.py` آن‌ها را از `DSA_LAMBDA` / `DSA_GAMMA` / `DSA_MIN_WEIGHT` یا از `.dsa_vault/params/dsa_params.json` می‌خواند. اگر `dsa_fade_not_forget` روشن باشد و هیچ‌کدام تنظیم نشده باشد، برنامه با خطای صریح بالا نمی‌آید.

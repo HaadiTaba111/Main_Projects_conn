@@ -28,4 +28,4 @@ python3 continual/continual_eval.py
 - افزودن تسک‌های بیشتر به `continual/data/` و اجرای کامل ماتریس R.
 - نگه‌داشتن `datasets/` و `results.json` به‌عنوان خروجی قابل بازتولید.
 
-> 🔒 پارامترهای محرمانهٔ DSA (λ، γ، w_min) در `train_qwen_poet_dsa.py` هستند؛ مستندات کامل DSA در `.dsa_vault/` نگهداری می‌شود.
+> 🔒 پارامترهای محرمانهٔ DSA (λ، γ، w_min) در کد نیستند. `dsa_params.py` آن‌ها را از متغیرهای محیطی `DSA_LAMBDA` / `DSA_GAMMA` / `DSA_MIN_WEIGHT` یا از `.dsa_vault/params/dsa_params.json` می‌خواند؛ اگر هیچ‌کدام نباشد، اجرا با خطای صریح متوقف می‌شود. `train_qwen_poet_dsa.py` از Git بیرون است (`.gitignore`). مستندات کامل DSA در `.dsa_vault/` نگهداری می‌شود.

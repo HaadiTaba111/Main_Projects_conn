@@ -8,7 +8,7 @@ Qwen-Hands-Eyes is a modular, parametric, offline-first personal autonomous agen
 - **Eyes (Vision):** High-speed screen capture, multi-monitor support, VLM grounding, and visual element locator.
 - **Hands (Automation):** Mouse/keyboard controller with Unicode clipboard safety, sandboxed shell execution, atomic file editor with diff preview.
 - **Feet (Mobile Gateway):** Standard REST & WebSocket server for Android mobile apps with Static IP / LAN auto-discovery.
-- **DSA Memory Retention:** SQLite episodic memory engine powered by Fade-Not-Forget dynamics ($\lambda=0.15, \gamma=0.4, w_{min}=0.15$).
+- **DSA Memory Retention:** SQLite episodic memory engine powered by Fade-Not-Forget dynamics (پارامترها از گاوصندوق/متغیر محیطی خوانده می‌شوند).
 
 ## Quickstart
 ```bash

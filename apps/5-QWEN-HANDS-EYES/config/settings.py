@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from config.dsa_params import load_dsa_params
+
 
 @dataclasses.dataclass
 class LLMModelConfig:
@@ -106,15 +108,29 @@ class FeetConfig:
     push_webhook_url: str = ""
 
 
+DSA_SECRET_KEYS = frozenset({"dsa_lambda", "dsa_gamma", "dsa_min"})
+
+
 @dataclasses.dataclass
 class MemoryConfig:
     sqlite_path: str = ".qwen_hands_eyes/memory.sqlite"
     dsa_fade_not_forget: bool = True
-    dsa_lambda: float = 0.15
-    dsa_gamma: float = 0.4
-    dsa_min: float = 0.15
+    # λ، γ، w_min هرگز در کد نیستند: از متغیر محیطی یا گاوصندوق DSA خوانده می‌شوند (config/dsa_params.py)
+    dsa_lambda: Optional[float] = None
+    dsa_gamma: Optional[float] = None
+    dsa_min: Optional[float] = None
     max_recent_memories: int = 10
     max_search_results: int = 6
+
+    def __post_init__(self) -> None:
+        if self.dsa_fade_not_forget and None in (self.dsa_lambda, self.dsa_gamma, self.dsa_min):
+            params = load_dsa_params()
+            if self.dsa_lambda is None:
+                self.dsa_lambda = params["lambda"]
+            if self.dsa_gamma is None:
+                self.dsa_gamma = params["gamma"]
+            if self.dsa_min is None:
+                self.dsa_min = params["min_weight"]
 
 
 @dataclasses.dataclass
@@ -182,6 +198,8 @@ class AppConfig:
 
         if "memory" in data and isinstance(data["memory"], dict):
             for k, v in data["memory"].items():
+                if k in DSA_SECRET_KEYS:
+                    continue  # مقادیر DSA فقط از محیط/گاوصندوق خوانده می‌شوند، نه از config.json
                 if hasattr(self.memory, k):
                     setattr(self.memory, k, v)
 
@@ -220,7 +238,7 @@ class AppConfig:
             "eyes": dataclasses.asdict(self.eyes),
             "hands": dataclasses.asdict(self.hands),
             "feet": dataclasses.asdict(self.feet),
-            "memory": dataclasses.asdict(self.memory),
+            "memory": {k: v for k, v in dataclasses.asdict(self.memory).items() if k not in DSA_SECRET_KEYS},
         }
         config_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 

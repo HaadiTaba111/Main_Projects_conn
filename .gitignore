@@ -24,3 +24,7 @@ secrets/
 # ===== حافظهٔ محلی و خروجی‌های بزرگ =====
 experience.db
 .qwen_hands_eyes/
+
+# DSA: فایل‌های محرمانه خارج از Git (فقط محلی؛ تاریخچهٔ Git دست‌نخورده است)
+Main_Arena_conn_current.zip
+apps/4-PERSIAN-POET-BRAIN/train_qwen_poet_dsa.py
