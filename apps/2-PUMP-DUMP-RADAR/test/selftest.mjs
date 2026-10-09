@@ -198,6 +198,8 @@ console.log('\n۸) 🖥 رندر UI با DOM فیک — هیچ استثنایی 
     signals: new Map([['COIN1USDT', { side: 'WAIT', score: 50, why: 'کم' }]]),
     blockReasons: new Map([['COIN1USDT', 'سقف پوزیشن پر است']]),
     settings: { value: { audioAlerts: 'true' } },
+    isAutoScanOn: () => true,
+    isPaperAutoOn: () => true,
     radar: {
       snapshot: () => ({
         enabled: true, source: 'BINANCE', lastPollAt: Date.now(), universe: 412, warmupRemainMin: 0, error: '',

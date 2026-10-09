@@ -55,6 +55,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
 
   scanIntervalSec: 8,
   paperAutoDefault: 'true',
+  // وضعیت تیک‌ها ماندگار است؛ اسکن خودکار با «توقف اضطراری» خاموش نمی‌شود
+  autoScan: 'true',
+  paperAutoOn: '',   // '' = پیش‌فرض از paperAutoDefault؛ 'true'/'false' = انتخاب کاربر
 
   // --- پل یک‌طرفه به اتوتریدر (اختیاری، پیش‌فرض خاموش) ---
   bridgePublish: 'true'

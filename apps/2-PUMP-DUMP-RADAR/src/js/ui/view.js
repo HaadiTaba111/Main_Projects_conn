@@ -17,7 +17,8 @@ export class DashboardView {
     });
 
     $('#refreshBtn').onclick = () => void this.app.scan({ force: true });
-    $('#autoScanToggle').onchange = () => this.app.schedule();
+    $('#autoScanToggle').onchange = () => this.app.setAutoScan($('#autoScanToggle').checked);
+    $('#autoTradeToggle').onchange = () => this.app.setPaperAuto($('#autoTradeToggle').checked);
 
     // 🔌 تست اتصال: نشان می‌دهد کدام منبع دیتا از این شبکه در دسترس است
     const diagBtn = $('#diagBtn');
@@ -69,7 +70,7 @@ export class DashboardView {
 
     $('#panicBtn').onclick = () => {
       this.app.killAll();
-      $('#statusText').textContent = '🛑 Kill Switch فعال — همه پوزیشن‌ها بسته و اسکن متوقف شد';
+      $('#statusText').textContent = '🛑 Kill Switch فعال — پوزیشن‌های مجازی بسته و اتوترید خاموش شد؛ اسکن خودکار ادامه دارد';
     };
     $('#resetPaperBtn').onclick = () => {
       if (confirm('ریست کامل حساب مجازی پمپ/دامپ؟')) {
@@ -139,7 +140,8 @@ export class DashboardView {
       const el = form.elements[key];
       if (el) el.value = value;
     }
-    $('#autoTradeToggle').checked = toBool(this.app.settings.value.paperAutoDefault);
+    $('#autoScanToggle').checked = toBool(this.app.settings.value.autoScan);
+    $('#autoTradeToggle').checked = this.app.isPaperAutoOn();
   }
 
   renderStats() {
@@ -181,8 +183,8 @@ export class DashboardView {
       const pollSec = Math.max(10, Number(this.app.settings.value.radarPollSec) || 10);
       const ageSec = snap.lastPollAt ? Math.max(0, Math.floor((Date.now() - snap.lastPollAt) / 1000)) : null;
       const nextSec = ageSec === null ? pollSec : Math.max(0, pollSec - ageSec);
-      const autoOn = $('#autoScanToggle')?.checked ?? true;
-      const paperOn = $('#autoTradeToggle')?.checked ?? toBool(this.app.settings.value.paperAutoDefault);
+      const autoOn = this.app.isAutoScanOn();
+      const paperOn = this.app.isPaperAutoOn();
       lastInfo.textContent = `${autoOn ? 'اسکن خودکار روشن' : 'اسکن خودکار خاموش'} • ${paperOn ? 'Paper Auto روشن' : 'Paper Auto خاموش'} • ${ageSec === null ? 'در انتظار اولین دریافت' : `آخرین دریافت ${ageSec} ثانیه قبل؛ پول بازار بعدی ~${nextSec} ثانیه`}${snap.error ? ` • خطا: ${snap.error.slice(0, 100)}` : ''}`;
     }
     const badge = $('#radarStatusBadge');

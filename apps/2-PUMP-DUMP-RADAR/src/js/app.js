@@ -1,4 +1,4 @@
-import { $, ignitionSummaryText } from './core/utils.js';
+import { $, ignitionSummaryText, toBool } from './core/utils.js';
 import { readJson, writeJson } from './core/utils.js';
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from './core/config.js';
 import { Logger } from './services/logger.js';
@@ -25,7 +25,8 @@ class SettingsStore {
 
 // ⏱ سقف زمان کار هر نماد و سقف عمر یک اسکن معلق — تضمین می‌کند حلقهٔ خودکار هرگز نخوابد.
 const SCAN_SYMBOL_TIMEOUT_MS = 25000;
-const SCAN_WATCHDOG_MS = 90000;
+const SCAN_WATCHDOG_MS = 45000;
+const RESUME_SCAN_MIN_GAP_MS = 5000;
 
 const withDeadline = (promise, ms, label) => new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error(`${label}: مهلت ${Math.round(ms / 1000)} ثانیه تمام شد`)), ms);
@@ -56,6 +57,7 @@ export class PumpDumpApp {
     this.scanInFlight = false;
     this.scanStartedAt = 0;
     this.pendingManualScan = false;
+    this.lastResumeScanAt = 0;
     this.lastKlineErrorLog = new Map();
     // ✅ اعتبارسنج رادار — زمان قضاوت و آستانهٔ حرکت، زنده از Settings (v1.2.2)
     const svSet = this.settings.value;
@@ -111,7 +113,7 @@ export class PumpDumpApp {
           // ✅ قضاوت رویدادهای سررسیدشده (حداکثر ۵ تا در هر اسکن — سبک)
           for (const item of this.signalValidator.pending(Date.now()).slice(0, 5)) {
             try {
-              const k = await this.market.getKlines(item.symbol, '5m');
+              const k = await withDeadline(this.market.getKlines(item.symbol, '5m'), SCAN_SYMBOL_TIMEOUT_MS, `اعتبارسنج ${item.symbol}`);
               const last = k.candles?.at(-1);
               if (last) this.signalValidator.settle(item.id, last.close, Date.now());
             } catch { /* تلاش مجدد در اسکن بعدی */ }
@@ -124,10 +126,11 @@ export class PumpDumpApp {
       }
 
       // ۲) موتور Ignition فقط روی نمادهای کشف‌شده (نه WATCH)
-      this.signals.clear();
-      this.marketData.clear();
-      this.blockReasons.clear();
-      const autoOn = $('#autoTradeToggle')?.checked ?? true;
+      // داده‌ی قبلی تا رسیدن نتیجهٔ جدید روی صفحه می‌ماند؛ در پایان یک‌جا جایگزین می‌شود
+      const nextSignals = new Map();
+      const nextMarket = new Map();
+      const nextBlock = new Map();
+      const autoOn = this.isPaperAutoOn();
       const targets = [...this.radar.active.values()].filter(rec => rec.side !== 'WATCH');
 
       const results = await Promise.allSettled(targets.map(rec => withDeadline((async () => ({
@@ -142,7 +145,7 @@ export class PumpDumpApp {
         if (result.status !== 'fulfilled') {
           klineFails += 1;
           const message = result.reason?.message || String(result.reason || 'خطای ناشناخته کندل');
-          this.blockReasons.set(symbol, `دیتای کندل دریافت نشد: ${message}`);
+          nextBlock.set(symbol, `دیتای کندل دریافت نشد: ${message}`);
           if (this.lastKlineErrorLog.get(symbol) !== message) {
             this.logger.info('KLINE ERROR', { symbol, error: message });
             this.lastKlineErrorLog.set(symbol, message);
@@ -154,7 +157,7 @@ export class PumpDumpApp {
         if (!last || !Number.isFinite(Number(last.close))) {
           klineFails += 1;
           const message = 'پاسخ صرافی کندل معتبر/آخرین قیمت ندارد';
-          this.blockReasons.set(rec.symbol, message);
+          nextBlock.set(rec.symbol, message);
           if (this.lastKlineErrorLog.get(rec.symbol) !== message) {
             this.logger.info('KLINE ERROR', { symbol: rec.symbol, error: message });
             this.lastKlineErrorLog.set(rec.symbol, message);
@@ -163,8 +166,8 @@ export class PumpDumpApp {
         }
         this.lastKlineErrorLog.delete(rec.symbol);
         const signal = this.strategy.analyze(rec, klines);
-        this.signals.set(rec.symbol, signal);
-        this.marketData.set(rec.symbol, {
+        nextSignals.set(rec.symbol, signal);
+        nextMarket.set(rec.symbol, {
           symbol: rec.symbol,
           price: Number(last.close),
           lastCandle: last,
@@ -172,6 +175,10 @@ export class PumpDumpApp {
           source: klines.source
         });
       }
+
+      this.signals = nextSignals;
+      this.marketData = nextMarket;
+      this.blockReasons = nextBlock;
 
       // ۳) مدیریت خروج پوزیشن‌های باز (SL سخت / Breakeven / ترلینگ / MaxHold)
       this.paper.updateStops(this.marketData);
@@ -270,35 +277,65 @@ export class PumpDumpApp {
     this.timer = null;
   }
 
+  /** وضعیت اسکن خودکار از تنظیمات (ماندگار) خوانده می‌شود، نه از حالت چک‌باکس. */
+  isAutoScanOn() {
+    return toBool(this.settings.value.autoScan);
+  }
+
+  /** اتوترید مجازی: انتخاب کاربر اگر ثبت شده باشد، وگرنه پیش‌فرض تنظیمات. */
+  isPaperAutoOn() {
+    const saved = String(this.settings.value.paperAutoOn ?? '');
+    return saved === '' ? toBool(this.settings.value.paperAutoDefault) : toBool(saved);
+  }
+
+  setAutoScan(on) {
+    this.settings.save({ ...this.settings.value, autoScan: on ? 'true' : 'false' });
+    this.schedule();
+  }
+
+  setPaperAuto(on) {
+    this.settings.save({ ...this.settings.value, paperAutoOn: on ? 'true' : 'false' });
+  }
+
   schedule() {
     this.stopSchedule();
-    if (!($('#autoScanToggle')?.checked ?? true)) return;
+    if (!this.isAutoScanOn()) return;
 
     const intervalMs = Math.max(3, Number(this.settings.value.scanIntervalSec) || 8) * 1000;
     const generation = this.timerGeneration;
-    const tick = async () => {
+    const tick = () => {
       if (generation !== this.timerGeneration) return;
       this.timer = null;
-      try {
-        await this.scan();
-      } catch (error) {
+      // اسکن await نمی‌شود: زمان‌بندی بعدی همیشه ثبت می‌شود و اسکن معلق فقط توسط نگهبان آزاد می‌شود.
+      this.scan().catch(error => {
         this.logger.info('AUTO SCAN ERROR', { error: error?.message || String(error) });
-      }
-      if (generation !== this.timerGeneration || !($('#autoScanToggle')?.checked ?? true)) return;
+      });
+      if (generation !== this.timerGeneration || !this.isAutoScanOn()) return;
       this.timer = setTimeout(tick, intervalMs);
     };
     this.timer = setTimeout(tick, intervalMs);
   }
 
+  /** بعد از برگشت به صفحه یا وصل شدن اینترنت، فوراً یک اسکن بگیر. */
+  resumeScan() {
+    if (!this.isAutoScanOn()) return;
+    const now = Date.now();
+    if (now - this.lastResumeScanAt < RESUME_SCAN_MIN_GAP_MS) return;
+    this.lastResumeScanAt = now;
+    this.scan({ force: true }).catch(error => {
+      this.logger.info('RESUME SCAN ERROR', { error: error?.message || String(error) });
+    });
+  }
+
+  /** توقف اضطراری: پوزیشن‌های مجازی را می‌بندد و اتوترید را خاموش می‌کند. اسکن خودکار دست‌نخورده می‌ماند. */
   killAll() {
     for (const position of [...this.paper.state.paperPositions]) {
       const market = this.marketData.get(position.symbol);
       this.paper.close(position, market?.price || position.entry, 'kill-switch');
     }
-    if ($('#autoScanToggle')) $('#autoScanToggle').checked = false;
+    this.setPaperAuto(false);
     if ($('#autoTradeToggle')) $('#autoTradeToggle').checked = false;
     this.pendingManualScan = false;
-    this.stopSchedule();
     this.view.renderAll();
   }
 
@@ -307,6 +344,10 @@ export class PumpDumpApp {
     this.view.renderSettings();
     this.view.renderAll();
     this.logger.info('PUMP LAB START', { mode: this.radar.meta.source });
+    window.addEventListener('online', () => this.resumeScan());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') this.resumeScan();
+    });
     await this.scan().catch(error => this.logger.info('INITIAL SCAN ERROR', { error: error.message }));
     this.schedule();
   }
