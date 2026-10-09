@@ -5,6 +5,22 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = normalize(fileURLToPath(new URL('.', import.meta.url))).replace(new RegExp(`${sep}$`), '');
 const PORT = Number(process.env.PORT || 8787);
+// 🔐 پیش‌فرض فقط روی همان دستگاه (localhost). برای دسترسی از شبکه (مثلاً گوشی) صریحاً
+// HOST=0.0.0.0 بدهید. (قبلاً همیشه روی 0.0.0.0 بود و کل پوشه در دسترس شبکه بود.)
+const HOST = process.env.HOST || '127.0.0.1';
+
+// 🧱 فقط فایل‌های لازمِ پوستهٔ PWA سرو می‌شوند. داده‌ها، نتایج، تست‌ها، ابزارها،
+// آرشیو، package.json و هر فایل دیگری در ریشه عمداً در دسترس وب نیست.
+const STATIC_ROOT_FILES = new Set(['index.html', 'styles.css', 'sw.js', 'manifest.webmanifest', 'icon.svg']);
+const STATIC_DIR_PREFIXES = ['src/'];
+const STATIC_EXTS = new Set(['.html', '.css', '.js', '.mjs', '.json', '.webmanifest', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico', '.woff2']);
+export function isStaticAllowed(relative) {
+  const rel = String(relative || '').replace(/\\/g, '/');
+  if (!rel || rel.includes('..')) return false;
+  if (STATIC_ROOT_FILES.has(rel)) return true;
+  if (!STATIC_DIR_PREFIXES.some(prefix => rel.startsWith(prefix))) return false;
+  return STATIC_EXTS.has(extname(rel).toLowerCase());
+}
 const BYBIT_BASE_URL = process.env.BYBIT_API_URL || process.env.BYBIT_BASE_URL || 'https://api.bybit.com';
 const OKX_BASE = 'https://www.okx.com/api/v5';
 const BINANCE_BASE = 'https://api.binance.com/api/v3';
@@ -440,7 +456,7 @@ async function routeApi(req, res, url) {
       ok: true,
       bybitBaseUrl: BYBIT_BASE_URL,
       mode: 'multi-exchange-live-failover',
-      exchanges: ['Bybit V5', 'OKX V5', 'Binance Public', 'CoinGecko Unblocked']
+      exchanges: ['Bybit V5', 'OKX V5 (SWAP)', 'Binance USDT-M Futures']
     });
   }
   if (url.pathname.startsWith('/api/bybit/v5/market/')) {
@@ -449,8 +465,9 @@ async function routeApi(req, res, url) {
   if (url.pathname.startsWith('/api/okx/')) {
     return proxyGeneric(req, res, url, '/api/okx', 'https://www.okx.com/');
   }
-  if (url.pathname.startsWith('/api/binance/')) {
-    return proxyGeneric(req, res, url, '/api/binance', 'https://api.binance.com/');
+  // Binance USDT-M Futures (fapi) — همان بازاری که این اپ معامله می‌کند.
+  if (url.pathname.startsWith('/api/binance-futures/')) {
+    return proxyGeneric(req, res, url, '/api/binance-futures', 'https://fapi.binance.com/');
   }
   if (url.pathname.startsWith('/api/mock/bybit/v5/market/')) {
     return mockBybit(url, res);
@@ -484,6 +501,11 @@ async function serveStatic(req, res, url) {
     return;
   }
   const relative = (pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, ''));
+  if (!isStaticAllowed(relative)) {
+    res.writeHead(404, headers({ 'content-type': 'text/plain; charset=utf-8' }));
+    res.end('404 Not Found');
+    return;
+  }
   const file = normalize(join(ROOT, relative));
   if (file !== ROOT && !file.startsWith(`${ROOT}${sep}`)) {
     res.writeHead(403, headers({ 'content-type': 'text/plain; charset=utf-8' }));
@@ -520,8 +542,8 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 Futures Scalp Lab (Multi-Exchange Failover): http://localhost:${PORT}`);
-  console.log(`📡 Real-Time Exchanges: Bybit V5 -> OKX V5 -> Binance -> CoinGecko`);
+server.listen(PORT, HOST, () => {
+  console.log(`\n🚀 Futures Scalp Lab (Multi-Exchange Failover): http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+  console.log(`📡 Real-Time Exchanges: Bybit V5 -> OKX V5 (SWAP) -> Binance USDT-M Futures`);
   console.log('🛡️  Zero fake data in LIVE mode; 100% real market prices.\n');
 });

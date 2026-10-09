@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   realVenue: 'lbank-futures',
   symbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'BNBUSDT'],
   symbolMap: {},
-  timeframe: '60', // پیش‌فرض ۱ ساعته طلایی (۱h) برای حذف نویزها
+  timeframe: '15', // پیش‌فرض ۱۵ دقیقه (تصمیم صاحب پروژه) — کف نگهداری ۴ کندل = ۶۰ دقیقه
   riskProfile: 'medium',
 
   // Medium profile defaults (تایم‌فریم ۱ ساعته با فیلتر دقیق شکست و RSI)
@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   takeProfitR: 2.0,
   cooldownSec: 300,
   maxHoldMinutes: 120,
+  // کف نگهداری بر حسب کندل‌های خودِ معامله (با تایم‌فریم ۱۵ دقیقه = ۶۰ دقیقه)
+  minHoldCandles: 4,
 
   // --- 🎯 موتور خروج شناور (Floating Profit Engine) ---
   // profitMode='float': حد سود «باز» است؛ سود با نمودار بالا می‌رود و فقط با

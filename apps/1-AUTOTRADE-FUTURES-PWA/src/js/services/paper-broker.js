@@ -80,6 +80,7 @@ export class PaperBroker {
       paperTrades: trades,
       realOrders: Array.isArray(saved.realOrders) ? saved.realOrders : [],
       lastCooldown: saved.lastCooldown && typeof saved.lastCooldown === 'object' ? saved.lastCooldown : {},
+      lastEntryCandle: saved.lastEntryCandle && typeof saved.lastEntryCandle === 'object' ? { ...saved.lastEntryCandle } : {},
       profileStarts,
       feesPaid: Number.isFinite(Number(saved.feesPaid)) ? Number(saved.feesPaid) : 0
     };
@@ -197,6 +198,12 @@ export class PaperBroker {
     if (this.state.paperPositions.some(position => position.symbol === signal.symbol)) {
       return { ok: false, reason: `برای ${signal.symbol} از قبل پوزیشن باز داریم` };
     }
+    // 🚫 هر کندل برای هر نماد فقط یک ورود دارد: بعد از بسته‌شدن و گذشتن cooldown،
+    // همان سیگنالِ همان کندل دوباره وارد نمی‌شود (قبلاً ممکن بود).
+    const candleTs = Number(signal.candleTs) || 0;
+    if (candleTs && Number(this.state.lastEntryCandle?.[signal.symbol]) === candleTs) {
+      return { ok: false, reason: `سیگنال همین کندل برای ${signal.symbol} قبلاً معامله شده؛ ورود مجدد روی همان کندل مجاز نیست` };
+    }
     if (!force) {
       const cooldownMs = Number(s.cooldownSec) * 1000;
       const lastAt = Number(this.state.lastCooldown[signal.symbol] || 0);
@@ -254,6 +261,9 @@ export class PaperBroker {
       rungs: []
     });
     this.state.lastCooldown[signal.symbol] = this.now();
+    if (Number(signal.candleTs)) {
+      this.state.lastEntryCandle = { ...(this.state.lastEntryCandle || {}), [signal.symbol]: Number(signal.candleTs) };
+    }
     this.pushRung(this.state.paperPositions.at(-1), 'open', {
       mark: signal.entry, sc: signal.score, sd: signal.side, atr: signal.atr
     });
@@ -351,7 +361,15 @@ export class PaperBroker {
     const nowT = this.now();
     const s = this.s.value;
     // حداکثر زمان نگهداری — پارامتر maxHoldMinutes که در Settings هست، اینجا قاطع اجرا می‌شود
-    const maxHoldMs = Math.max(0, Number(s.maxHoldMinutes)) * 60000;
+    // کف زمان نگهداری بر حسب کندل‌های «خود معامله» (minHoldCandles × تایم‌فریم ورود):
+    // بدون این کف، پروفایل‌های کم‌ریسک با تایم‌فریم ۱۵ دقیقه‌ای بعد از ۱ کندل بسته می‌شدند.
+    const minHoldCandles = Math.max(0, Number(s.minHoldCandles) || 0);
+    const baseMaxHoldMs = Math.max(0, Number(s.maxHoldMinutes)) * 60000;
+    // تایم‌فریم خودِ پوزیشن (قفل تایم‌فریم) — اگر ثبت نشده باشد از تنظیمات فعلی می‌گیریم.
+    const tfMinutesOf = position => {
+      const ms = Number(position.tfMs) || (Number(s.timeframe) || 0) * 60000;
+      return ms > 0 ? ms : 0;
+    };
     // 🎯 پارامترهای موتور خروج شناور — همه از Settings (پارامتریک، قابل بهینه‌سازی با بک‌تست)
     const profitMode = String(s.profitMode || 'float');
     const trailAtrMult = Number(s.trailAtrMult) > 0 ? Number(s.trailAtrMult) : 1.25;
@@ -394,12 +412,24 @@ export class PaperBroker {
 
       const mark = Number(market.price);
       const candle = market.lastCandle || {};
-      const high = Number.isFinite(Number(candle.high)) ? Number(candle.high) : mark;
-      const low = Number.isFinite(Number(candle.low)) ? Number(candle.low) : mark;
       const isLong = position.side === 'LONG';
       const entry = Number(position.entry);
+      const tfMs = tfMinutesOf(position);
+      const maxHoldMs = Math.max(baseMaxHoldMs, minHoldCandles * tfMs);
+      // اسلیپیج خروج (علیه معامله‌گر) — همان slippagePct ورود، برای همه خروج‌های خودکار.
+      const slip = Math.max(0, Number(s.slippagePct) || 0) / 100;
+      const adverse = price => (isLong ? price * (1 - slip) : price * (1 + slip));
       let exit = null;
       let reason = '';
+
+      // 🕯 فقط کندل‌های «بعد از ورود» در سقف/کفِ معامله و در تشخیص استاپ شمرده می‌شوند.
+      // کندلی که معامله روی آن باز شد (یا قبل از آن) سقف/کف قبل از ورود دارد و
+      // قبلاً باعث بالا رفتن بی‌جای highWater و ترلینگ اشتباه می‌شد.
+      const entryCandleTs = Number(position.candleTs) || 0;
+      const candleTs = Number(candle.ts) || 0;
+      const candleIsPostEntry = !entryCandleTs || !candleTs || candleTs > entryCandleTs;
+      const high = (candleIsPostEntry && Number.isFinite(Number(candle.high))) ? Number(candle.high) : mark;
+      const low = (candleIsPostEntry && Number.isFinite(Number(candle.low))) ? Number(candle.low) : mark;
 
       // رهگیری بالاترین و پایین‌ترین قیمت ثبت‌شده — سود شناور (آب موافق) و
       // بیشترین افت (آب مخالف → maePct در نردبان داده v2.6)
@@ -410,19 +440,21 @@ export class PaperBroker {
 
       // ۰. خروج قاطع MaxHold — پوزیشن بیش از حد مجاز نگهداری نشود
       if (maxHoldMs > 0 && nowT - Number(position.openedAt) >= maxHoldMs) {
-        this.close(position, mark, 'MAX_HOLD_EXIT');
+        this.close(position, adverse(mark), 'MAX_HOLD_EXIT');
         continue;
       }
 
       // ۱. استاپ قاطع (قیمتی و مستقل از تایم‌فریم):
       //    اگر استاپ بالای نقطهٔ ورود باشد (سود قفل‌شده با بریک‌ایون/ترلینگ)،
       //    برچسب خروج «بستن سود شناور» است نه SL — تا آمار واقعی سود/ضرر کدر نباشد.
+      //    🧱 پرشِ قیمت (gap): اگر قیمت از استاپ عبور کرده باشد، با قیمتِ بدتر از استاپ
+      //    بسته می‌شود (نه دقیقاً روی استاپ) — همان‌طور که در بازار واقعی اتفاق می‌افتد.
       const stopLocksProfit = isLong ? Number(position.stop) >= entry : Number(position.stop) <= entry;
       if (isLong && (mark <= Number(position.stop) || low <= Number(position.stop))) {
-        exit = Number(position.stop);
+        exit = adverse(Math.min(Number(position.stop), mark));
         reason = stopLocksProfit ? 'PROFIT_TRAIL_REVERSED' : 'SL_HARD_STOP';
       } else if (!isLong && (mark >= Number(position.stop) || high >= Number(position.stop))) {
-        exit = Number(position.stop);
+        exit = adverse(Math.max(Number(position.stop), mark));
         reason = stopLocksProfit ? 'PROFIT_TRAIL_REVERSED' : 'SL_HARD_STOP';
       }
 
@@ -496,7 +528,7 @@ export class PaperBroker {
           }
         }
         if (isLong ? mark <= Number(position.stop) : mark >= Number(position.stop)) {
-          exit = mark;
+          exit = adverse(mark);
           reason = 'PROFIT_TRAIL_REVERSED';
         }
 
@@ -506,14 +538,14 @@ export class PaperBroker {
             const rsiReversal = signal.rsi && signal.rsi > reversalRsiHigh && signal.movePct < -reversalMovePct;
             const emaBearCross = signal.emaFast && signal.emaSlow && (signal.emaFast < signal.emaSlow) && (signal.volX > reversalVolX);
             if (rsiReversal || emaBearCross) {
-              exit = mark;
+              exit = adverse(mark);
               reason = rsiReversal ? 'REVERSAL_RSI_OVERBOUGHT' : 'REVERSAL_EMA_CROSS';
             }
           } else {
             const rsiReversal = signal.rsi && signal.rsi < reversalRsiLow && signal.movePct > reversalMovePct;
             const emaBullCross = signal.emaFast && signal.emaSlow && (signal.emaFast > signal.emaSlow) && (signal.volX > reversalVolX);
             if (rsiReversal || emaBullCross) {
-              exit = mark;
+              exit = adverse(mark);
               reason = rsiReversal ? 'REVERSAL_RSI_OVERSOLD' : 'REVERSAL_EMA_CROSS';
             }
           }
@@ -526,7 +558,7 @@ export class PaperBroker {
           const allAgainst = recentCandles.every(candle =>
             isLong ? Number(candle.close) < Number(candle.open) : Number(candle.close) > Number(candle.open));
           if (allAgainst) {
-            exit = mark;
+            exit = adverse(mark);
             reason = 'MOMENTUM_FADE';
           }
         }
@@ -547,7 +579,7 @@ export class PaperBroker {
                 this.pushRung(position, 'lock', { mark, reason: 'ARM' });
               }
               if (gross <= peakGross * (1 - lockGivebackPct / 100)) {
-                exit = mark;
+                exit = adverse(mark);
                 reason = 'PROFIT_LOCK';
               }
             }
@@ -558,7 +590,7 @@ export class PaperBroker {
       // ۴. 🔄 چرخش روند قاطع (در هر دو حالت سود/ضرر): اگر سیگنال تازه با امتیاز
       //    کافی در جهت مخالف پوزیشن بیاید، تز معامله باطل است — حتی زیر حد ضرر هم ببند.
       if (!exit && tfMatch && signal && signal.side && signal.side !== 'WAIT' && signal.side !== position.side && Number(signal.score) >= minScoreForFlip) {
-        exit = mark;
+        exit = adverse(mark);
         reason = 'TREND_FLIP';
       }
 

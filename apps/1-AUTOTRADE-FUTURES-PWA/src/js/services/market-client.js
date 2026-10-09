@@ -170,7 +170,7 @@ export class MarketClient {
 
   async fetchDirectLiveExchanges(symbol) {
     const s = this.s.value;
-    const okxInst = symbol.replace('USDT', '-USDT');
+    const okxInst = symbol.replace('USDT', '-USDT-SWAP'); // 📌 قرارداد دائمی (نه اسپات)
     const pathErrors = [];
 
     // 1. OKX V5 — نردبان: پروکسی سرور → مستقیم مرورگر
@@ -213,12 +213,12 @@ export class MarketClient {
       const bTf = BINANCE_TFS[String(s.timeframe)] || '1h';
       const [tData, kData] = await Promise.all([
         this.fetchLadder([
-          { name: 'binance-proxy', url: `/api/binance/api/v3/ticker/24hr?symbol=${symbol}` },
-          { name: 'binance-direct', url: `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}` }
+          { name: 'binance-proxy', url: `/api/binance-futures/fapi/v1/ticker/24hr?symbol=${symbol}` },
+          { name: 'binance-direct', url: `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}` }
         ]),
         this.fetchLadder([
-          { name: 'binance-proxy', url: `/api/binance/api/v3/klines?symbol=${symbol}&interval=${bTf}&limit=90` },
-          { name: 'binance-direct', url: `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${bTf}&limit=90` }
+          { name: 'binance-proxy', url: `/api/binance-futures/fapi/v1/klines?symbol=${symbol}&interval=${bTf}&limit=90` },
+          { name: 'binance-direct', url: `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${bTf}&limit=90` }
         ])
       ]);
 
@@ -242,41 +242,9 @@ export class MarketClient {
       }
     } catch (e) { pathErrors.push(String(e?.message || e).slice(0, 140)); }
 
-    // 3. CoinGecko — پایپ‌لاین ضدتحریم ۱۰۰٪ باز در ایران (بدون نیاز به VPN)
-    try {
-      const cgMap = { BTCUSDT: 'bitcoin', ETHUSDT: 'ethereum', SOLUSDT: 'solana', XRPUSDT: 'ripple', BNBUSDT: 'binancecoin', DOGEUSDT: 'dogecoin', ADAUSDT: 'cardano', AVAXUSDT: 'avalanche-2', LINKUSDT: 'chainlink', TONUSDT: 'the-open-network' };
-      const coinId = cgMap[symbol] || 'bitcoin';
-      const [tRes, kRes] = await Promise.all([
-        fetchWithTimeout(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true`),
-        fetchWithTimeout(`https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=7`)
-      ]);
-      const tJson = await tRes.json();
-      const kJson = await kRes.json();
-      const price = Number(tJson?.[coinId]?.usd);
-
-      if (Number.isFinite(price) && Array.isArray(kJson) && kJson.length >= 10) {
-        const candles = kJson.map((c, i, arr) => {
-          const prevClose = i > 0 ? arr[i - 1][4] : c[1];
-          const move = Math.abs(c[4] - prevClose);
-          const vol = Math.round(move * 500 + 1000);
-          return { ts: Number(c[0]), open: Number(c[1]), high: Number(c[2]), low: Number(c[3]), close: Number(c[4]), volume: vol };
-        });
-        this.lastPathErrors = '';
-        return this.normalizeMarket(symbol, {
-          price,
-          candles,
-          source: 'COINGECKO LIVE (UNBLOCKED)',
-          exchangeTime: Date.now(),
-          receivedAt: Date.now(),
-          requestInfo: { tickerUrl: 'coingecko-direct', klineUrl: 'coingecko-direct' },
-          tickerRaw: { symbol, lastPrice: String(price), markPrice: String(price) }
-        }, this.s.value.timeframe, { dropForming: false });
-      }
-    } catch (e) { pathErrors.push(String(e?.message || e).slice(0, 140)); }
-
     const detail = pathErrors.join(' | ');
     this.lastPathErrors = detail;
-    throw new Error(`هیچ مسیر دیتا کار نکرد (${symbol}): ${detail || 'okx/binance ناموفق'}`);
+    throw new Error(`هیچ مسیر دیتا کار نکرد (${symbol}): ${detail || 'okx/binance-futures ناموفق'}`);
   }
 
   /**
@@ -337,7 +305,7 @@ export class MarketClient {
    * همین origin) و بعد مستقیم. هر تلاش سقف زمانی دارد تا اسکن خودکار هرگز معلق نماند.
    */
   async fetchDirectKlines(symbol, timeframe) {
-    const okxInst = symbol.replace('USDT', '-USDT');
+    const okxInst = symbol.replace('USDT', '-USDT-SWAP'); // 📌 قرارداد دائمی (نه اسپات)
     const bar = OKX_BARS[String(timeframe)] || '1m';
     const binanceInterval = BINANCE_TFS[String(timeframe)] || '1m';
     const okxCandles = body => (body?.code === '0' && Array.isArray(body.data) ? { rows: body.data, newestFirst: true } : null);
@@ -345,8 +313,8 @@ export class MarketClient {
     const attempts = [
       { name: 'okx-proxy', url: `/api/okx/api/v5/market/candles?instId=${okxInst}&bar=${bar}&limit=60`, source: 'OKX LIVE (SERVER PROXY)', parse: okxCandles },
       { name: 'okx-direct', url: `https://www.okx.com/api/v5/market/candles?instId=${okxInst}&bar=${bar}&limit=60`, source: 'OKX LIVE (DIRECT)', parse: okxCandles },
-      { name: 'binance-proxy', url: `/api/binance/api/v3/klines?symbol=${symbol}&interval=${binanceInterval}&limit=60`, source: 'BINANCE LIVE (SERVER PROXY)', parse: binanceCandles },
-      { name: 'binance-direct', url: `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${binanceInterval}&limit=60`, source: 'BINANCE LIVE (DIRECT)', parse: binanceCandles }
+      { name: 'binance-proxy', url: `/api/binance-futures/fapi/v1/klines?symbol=${symbol}&interval=${binanceInterval}&limit=60`, source: 'BINANCE LIVE (SERVER PROXY)', parse: binanceCandles },
+      { name: 'binance-direct', url: `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${binanceInterval}&limit=60`, source: 'BINANCE LIVE (DIRECT)', parse: binanceCandles }
     ];
 
     const errors = [];
@@ -379,7 +347,7 @@ export class MarketClient {
     const base = mode === 'mock-server' ? s.mockBaseUrl : s.dataBaseUrl;
 
     // پایهٔ تنظیمات اول امتحان می‌شود؛ اگر جواب نداد، پراکسی هم‌مبدأ همین سرور
-    // (که خودش Bybit → OKX → Binance → CoinGecko را زنجیره می‌کند) و در نهایت مسیر مستقیم.
+    // (که خودش Bybit → OKX → Binance-Futures را زنجیره می‌کند) و در نهایت مسیر مستقیم.
     const errors = [];
     for (const candidate of this.liveBases(base, mode)) {
       const tickerUrl = this.buildUrl(candidate, this.interpolate(s.tickerPath, symbol));

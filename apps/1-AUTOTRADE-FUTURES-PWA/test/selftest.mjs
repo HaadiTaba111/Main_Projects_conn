@@ -202,7 +202,7 @@ console.log('\n۶) پل Pump/Dump Lab — غیرمسدودکننده و اختی
 console.log('\n۷) بروکر — اجرای قاطع MaxHold با ساعت قابل تزریق (زیرساخت بک‌تست)');
 {
   const clock = { t: 1_700_000_000_000 };
-  const paper = new PaperBroker(baseSettings({ maxHoldMinutes: 120, cooldownSec: 60 }), { info: () => {} }, { now: () => clock.t });
+  const paper = new PaperBroker(baseSettings({ maxHoldMinutes: 120, cooldownSec: 60, minHoldCandles: 0 }), { info: () => {} }, { now: () => clock.t });
   const sig = { symbol: 'BTCUSDT', side: 'LONG', score: 90, entry: 100, qty: 1, notional: 100, stop: 95, take: 110, signalId: 'mh1' };
   ok(paper.open(sig, 'auto') === true, 'ورود در زمان شبیه‌سازی‌شده ثبت شد');
   clock.t += 121 * 60_000; // بیشتر از maxHoldMinutes=120
@@ -829,7 +829,7 @@ console.log('\n۱۸) 🔒 قفل سود — نجات سود هنگام پس‌گ
     // ترلینگ استاپ = ۱۰۵؛ قیمت ۱۰۵.۵ هنوز بالای ترلینگ است ولی ۲۷٪ از اوج پس داده → قفل می‌بندد
     paper.updateStops(market(105.5, 107.5, 105.5), sigAtr);
     const trade = paper.state.paperTrades[0];
-    ok(trade && trade.reason === 'PROFIT_LOCK' && Number(trade.exit) === 105.5,
+    ok(trade && trade.reason === 'PROFIT_LOCK' && Math.abs(Number(trade.exit) - 105.5) < 0.05, // اسلیپیج خروج (۰٫۰۲٪) مجاز است
       `قفل ۲۵٪ قبل از ترلینگ بست (exit=${trade?.exit}, reason=${trade?.reason})`);
   }
 
