@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لایراکس — تست مکعب ۳بعدی + کلمه‌به‌کلمه + آتش‌بازی</title>
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a12;
+  --card: #181b21;
+  --border: #313642;
+  --lemon: #FFF000;
+  --pink: #ff4d8d;
+  --cyan: #00ffff;
+  --gold: #ffd700;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Vazirmatn', Tahoma, sans-serif; }
+body {
+  background: var(--bg); color: #fff; direction: rtl;
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+}
+header { text-align: center; margin-bottom: 20px; }
+h1 { color: var(--lemon); font-size: 1.8rem; text-shadow: 0 0 15px rgba(255,240,0,0.3); }
+.sub { color: #8e95a5; margin-top: 6px; font-size: 0.95rem; }
+
+.controls {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;
+}
+.btn {
+  background: var(--card); color: #fff; border: 1px solid var(--border);
+  padding: 10px 22px; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { border-color: var(--lemon); box-shadow: 0 0 12px rgba(255,240,0,0.15); }
+.btn-primary { background: var(--lemon); color: #000; border-color: var(--lemon); }
+.btn-primary:hover { box-shadow: 0 0 20px rgba(255,240,0,0.4); }
+.btn-fire {
+  background: linear-gradient(135deg, #ff0055, #ff6b00); border: none; color: #fff;
+}
+.btn-fire:hover { box-shadow: 0 0 20px rgba(255,0,85,0.5); }
+
+.stage-tabs {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+.tab {
+  background: var(--card); border: 1px solid var(--border); color: #8e95a5;
+  padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold;
+}
+.tab.active { color: var(--lemon); border-color: var(--lemon); background: rgba(255,240,0,0.08); }
+
+.stage-area {
+  position: relative; width: 420px; height: 420px;
+  background: radial-gradient(circle at center, #1a0b2e 0%, #0a0a12 70%);
+  border: 2px solid var(--border); border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; margin-bottom: 20px;
+}
+
+/* ===== 3D CUBE ===== */
+.cube-scene {
+  width: 220px; height: 220px; perspective: 900px; position: relative; z-index: 2;
+}
+.cube {
+  width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cube-face {
+  position: absolute; width: 220px; height: 220px;
+  background: rgba(255, 77, 141, 0.08);
+  border: 2px solid rgba(255, 77, 141, 0.4);
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem; text-align: center; padding: 16px;
+  backface-visibility: visible;
+  box-shadow: 0 0 30px rgba(255, 77, 141, 0.1), inset 0 0 50px rgba(255, 77, 141, 0.03);
+  color: #fff; line-height: 1.6;
+  transition: all 0.4s ease;
+}
+.cube-face .cube-text { max-width: 88%; word-wrap: break-word; text-shadow: 0 0 10px currentColor; }
+.cube-face.face-front  { transform: rotateY(0deg) translateZ(110px); }
+.cube-face.face-back   { transform: rotateY(180deg) translateZ(110px); }
+.cube-face.face-right  { transform: rotateY(90deg) translateZ(110px); }
+.cube-face.face-left   { transform: rotateY(-90deg) translateZ(110px); }
+.cube-face.face-top    { transform: rotateX(90deg) translateZ(110px); }
+.cube-face.face-bottom { transform: rotateX(-90deg) translateZ(110px); }
+.cube-face.active {
+  background: rgba(255, 77, 141, 0.22);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 60px rgba(255, 77, 141, 0.35), inset 0 0 80px rgba(255, 77, 141, 0.12);
+}
+
+/* ===== WORD REVEAL ===== */
+.word-stage {
+  position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+}
+.word-stage.active { display: flex; }
+.word-container {
+  width: 90%; min-height: 100px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 6px 14px; padding: 20px; z-index: 2;
+}
+.word-particle {
+  display: inline-block; font-size: 1.6rem; font-weight: bold; color: #fff;
+  text-shadow: 0 0 12px currentColor; opacity: 0;
+  transform: translateX(100px) scale(0.3);
+  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+}
+.word-particle.visible { opacity: 1; transform: translateX(0) scale(1); }
+.word-particle.highlight {
+  color: var(--lemon); font-size: 2.2rem;
+  text-shadow: 0 0 25px var(--lemon), 0 0 50px rgba(255,240,0,0.4);
+  animation: pulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.2); } }
+.word-particle.exit-left {
+  opacity: 0; transform: translateX(-160px) scale(0.4) rotate(-12deg);
+  transition: all 0.45s ease-in;
+}
+.word-particle.exit-right {
+  opacity: 0; transform: translateX(160px) scale(0.4) rotate(12deg);
+  transition: all 0.45s ease-in;
+}
+
+/* ===== CANVASES ===== */
+#fireworksCanvas, #particleCanvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;
+}
+#particleCanvas { z-index: 1; }
+
+.info-bar {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 24px; text-align: center; min-width: 320px;
+}
+.line-counter { color: var(--lemon); font-size: 1.3rem; font-weight: bold; margin-bottom: 6px; }
+.current-text { color: #fff; font-size: 1.1rem; min-height: 32px; }
+
+.hint { color: #555; font-size: 0.8rem; margin-top: 14px; }
+
+/* Hide cube when word stage active in same container */
+.stage-area.word-mode .cube-scene { display: none; }
+.stage-area.word-mode #particleCanvas { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ لایراکس — دمو تستی</h1>
+  <div class="sub">مکعب ۳بعدی خط‌به‌خط + کلمه‌به‌کلمه + آتش‌بازی امضا</div>
+</header>
+
+<div class="controls">
+  <button class="btn btn-primary" id="btnNext">⏩ خط بعدی (Space)</button>
+  <button class="btn" id="btnPrev">⏪ خط قبلی</button>
+  <button class="btn btn-fire" id="btnFire">🎆 آتش‌بازی</button>
+</div>
+
+<div class="stage-tabs">
+  <div class="tab active" data-mode="cube">🎲 مکعب ۳بعدی</div>
+  <div class="tab" data-mode="word">✨ کلمه‌به‌کلمه</div>
+</div>
+
+<div class="stage-area" id="stageArea">
+  <canvas id="particleCanvas"></canvas>
+  <div class="cube-scene" id="cubeScene">
+    <div class="cube" id="cube">
+      <div class="cube-face face-front"><span class="cube-text"></span></div>
+      <div class="cube-face face-back"><span class="cube-text"></span></div>
+      <div class="cube-face face-right"><span class="cube-text"></span></div>
+      <div class="cube-face face-left"><span class="cube-text"></span></div>
+      <div class="cube-face face-top"><span class="cube-text"></span></div>
+      <div class="cube-face face-bottom"><span class="cube-text"></span></div>
+    </div>
+  </div>
+  <div class="word-stage" id="wordStage">
+    <div class="word-container" id="wordContainer"></div>
+  </div>
+  <canvas id="fireworksCanvas"></canvas>
+</div>
+
+<div class="info-bar">
+  <div class="line-counter">خط <span id="lineNum">0</span> / <span id="totalLines">0</span></div>
+  <div class="current-text" id="currentText">آماده — روی «خط بعدی» کلیک کنید</div>
+</div>
+
+<div class="hint">کلید Space روی کیبورد = خط بعدی | کلید F = آتش‌بازی</div>
+
+<script>
+/* ===================== DATA ===================== */
+const lyrics = [
+  "این یک *تست* است برای لایراکس",
+  "هر خط روی یک وجه ز *مکعب* می‌آید",
+  "فقط یک وجه فعال است بقیه خالی‌ان",
+  "کلمه‌های ویژه با *ستاره* درشت و زرد می‌شن",
+  "با زدن کلید خط بعدی مکعب می‌چرخد",
+  "آتش‌بازی هم با دکمه یا کلید F می‌آد",
+  "لایراکس *شاهکار* است داداش"
+];
+
+/* ===================== STATE ===================== */
+let currentIndex = -1;
+let currentMode = "cube"; // "cube" | "word"
+
+/* ===================== DOM ===================== */
+const cube = document.getElementById("cube");
+const faceEls = {};
+["front","back","right","left","top","bottom"].forEach(f => {
+  faceEls[f] = document.querySelector(`.face-${f}`);
+  faceEls[f]._textEl = faceEls[f].querySelector(".cube-text");
+});
+const wordStage = document.getElementById("wordStage");
+const wordContainer = document.getElementById("wordContainer");
+const stageArea = document.getElementById("stageArea");
+const lineNumEl = document.getElementById("lineNum");
+const totalLinesEl = document.getElementById("totalLines");
+const currentTextEl = document.getElementById("currentText");
+
+totalLinesEl.textContent = lyrics.length;
+
+/* ===================== CUBE LOGIC ===================== */
+const FACES = ["front","back","right","left","top","bottom"];
+let rotation = { x: -12, y: 28, z: 0 };
+let targetRotation = { x: -12, y: 28, z: 0 };
+
+function clearAllFaces() {
+  FACES.forEach(f => { faceEls[f]._textEl.textContent = ""; faceEls[f].classList.remove("active"); });
+}
+
+function setActiveFace(index) {
+  clearAllFaces();
+  const faceName = FACES[index % FACES.length];
+  const text = lyrics[index];
+  faceEls[faceName]._textEl.textContent = text.replace(/\*/g, "");
+  faceEls[faceName].classList.add("active");
+}
+
+function rotateToFace(index) {
+  const faceName = FACES[index % FACES.length];
+  const map = {
+    front:  { x: 0,   y: 0   },
+    back:   { x: 0,   y: 180 },
+    right:  { x: 0,   y: -90 },
+    left:   { x: 0,   y: 90  },
+    top:    { x: -90, y: 0   },
+    bottom: { x: 90,  y: 0   }
+  };
+  const base = map[faceName];
+  const seed = index * 137.5;
+  targetRotation = {
+    x: base.x + ((seed % 18) - 9),
+    y: base.y + (((seed * 1.3) % 18) - 9),
+    z: 0
+  };
+}
+
+function animateCube() {
+  const ease = 0.07;
+  rotation.x += (targetRotation.x - rotation.x) * ease;
+  rotation.y += (targetRotation.y - rotation.y) * ease;
+  rotation.z += ((targetRotation.z || 0) - rotation.z) * ease;
+  const t = Date.now() * 0.001;
+  const floatX = Math.sin(t * 0.5) * 1.5;
+  const floatY = Math.cos(t * 0.4) * 1.5;
+  cube.style.transform = `rotateX(${rotation.x + floatX}deg) rotateY(${rotation.y + floatY}deg) rotateZ(${rotation.z}deg)`;
+  requestAnimationFrame(animateCube);
+}
+animateCube();
+
+/* ===================== WORD REVEAL ===================== */
+function showWordLine(text) {
+  wordContainer.innerHTML = "";
+  const tokens = text.split(/(\s+)/).filter(Boolean);
+  const words = [];
+  tokens.forEach((token, idx) => {
+    if (!token.trim()) return;
+    const span = document.createElement("span");
+    span.className = "word-particle";
+    const isHighlight = token.startsWith("*") && token.endsWith("*");
+    span.textContent = isHighlight ? token.slice(1, -1) : token;
+    if (isHighlight) span.classList.add("highlight");
+    const fromLeft = idx % 2 === 0;
+    span.style.transform = fromLeft ? "translateX(-100px) scale(0.3)" : "translateX(100px) scale(0.3)";
+    wordContainer.appendChild(span);
+    words.push({ el: span, fromLeft });
+  });
+  requestAnimationFrame(() => {
+    words.forEach((w, i) => {
+      setTimeout(() => w.el.classList.add("visible"), i * 100);
+    });
+  });
+  return words;
+}
+
+function exitWordLine(words) {
+  words.forEach((w, i) => {
+    setTimeout(() => {
+      w.el.classList.remove("visible");
+      w.el.classList.add(w.fromLeft ? "exit-right" : "exit-left");
+    }, i * 70);
+  });
+}
+
+let currentWordParticles = [];
+
+/* ===================== NAVIGATION ===================== */
+function goNext() {
+  if (currentIndex >= lyrics.length - 1) currentIndex = -1;
+  currentIndex++;
+  updateDisplay();
+}
+
+function goPrev() {
+  if (currentIndex <= 0) { currentIndex = 0; return; }
+  currentIndex--;
+  updateDisplay();
+}
+
+function updateDisplay() {
+  const text = lyrics[currentIndex] || "";
+  lineNumEl.textContent = currentIndex + 1;
+  currentTextEl.textContent = text.replace(/\*/g, "");
+
+  if (currentMode === "cube") {
+    rotateToFace(currentIndex);
+    setTimeout(() => setActiveFace(currentIndex), 80);
+  } else {
+    if (currentWordParticles.length) exitWordLine(currentWordParticles);
+    setTimeout(() => {
+      currentWordParticles = showWordLine(text);
+    }, currentWordParticles.length ? 300 : 0);
+  }
+}
+
+/* ===================== TABS ===================== */
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentMode = tab.dataset.mode;
+    if (currentMode === "word") {
+      stageArea.classList.add("word-mode");
+      wordStage.classList.add("active");
+      clearAllFaces();
+    } else {
+      stageArea.classList.remove("word-mode");
+      wordStage.classList.remove("active");
+      wordContainer.innerHTML = "";
+      currentWordParticles = [];
+    }
+    updateDisplay();
+  });
+});
+
+/* ===================== FIREWORKS ===================== */
+const fwCanvas = document.getElementById("fireworksCanvas");
+const fwCtx = fwCanvas.getContext("2d");
+let fwParticles = [];
+
+function resizeFw() {
+  fwCanvas.width = stageArea.offsetWidth;
+  fwCanvas.height = stageArea.offsetHeight;
+}
+resizeFw();
+window.addEventListener("resize", resizeFw);
+
+function spawnFirework(x, y, color) {
+  const colors = ["#ff0055","#ff6b00","#ffd700","#00ffff","#ff4d8d","#ffffff","#7cff00"];
+  const c = color || colors[Math.floor(Math.random() * colors.length)];
+  const count = 70 + Math.random() * 40;
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
+    const speed = 2 + Math.random() * 5;
+    fwParticles.push({
+      x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      life: 1, decay: 0.012 + Math.random() * 0.018,
+      color: c, size: 2 + Math.random() * 3.5,
+      shimmer: Math.random() > 0.7
+    });
+  }
+}
+
+function launchFireworks() {
+  const cx = fwCanvas.width / 2;
+  const cy = fwCanvas.height / 2;
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const x = cx + (Math.random() - 0.5) * fwCanvas.width * 0.6;
+      const y = cy + (Math.random() - 0.5) * fwCanvas.height * 0.5;
+      spawnFirework(x, y);
+    }, i * 250);
+  }
+}
+
+function animateFw() {
+  fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+  for (let i = fwParticles.length - 1; i >= 0; i--) {
+    const p = fwParticles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.09; p.life -= p.decay;
+    if (p.life <= 0) { fwParticles.splice(i, 1); continue; }
+    fwCtx.globalAlpha = p.life;
+    fwCtx.fillStyle = p.color;
+    if (p.shimmer && Math.random() > 0.5) fwCtx.fillStyle = "#ffffff";
+    fwCtx.beginPath();
+    fwCtx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    fwCtx.fill();
+  }
+  fwCtx.globalAlpha = 1;
+  requestAnimationFrame(animateFw);
+}
+animateFw();
+
+/* ===================== PARTICLES BG ===================== */
+const pCanvas = document.getElementById("particleCanvas");
+const pCtx = pCanvas.getContext("2d");
+let pParticles = [];
+
+function resizeP() {
+  pCanvas.width = stageArea.offsetWidth;
+  pCanvas.height = stageArea.offsetHeight;
+}
+resizeP();
+window.addEventListener("resize", resizeP);
+
+for (let i = 0; i < 40; i++) {
+  pParticles.push({
+    x: Math.random() * 420, y: Math.random() * 420,
+    vx: (Math.random() - 0.5) * 0.4, vy: -0.3 - Math.random() * 0.5,
+    size: 1 + Math.random() * 2.5,
+    color: Math.random() > 0.5 ? "rgba(255,77,141,0.4)" : "rgba(255,240,0,0.25)"
+  });
+}
+
+function animateP() {
+  pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+  pParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.y < -10) { p.y = pCanvas.height + 10; p.x = Math.random() * pCanvas.width; }
+    pCtx.fillStyle = p.color;
+    pCtx.beginPath(); pCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2); pCtx.fill();
+  });
+  requestAnimationFrame(animateP);
+}
+animateP();
+
+/* ===================== EVENTS ===================== */
+document.getElementById("btnNext").addEventListener("click", goNext);
+document.getElementById("btnPrev").addEventListener("click", goPrev);
+document.getElementById("btnFire").addEventListener("click", launchFireworks);
+
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") { e.preventDefault(); goNext(); }
+  if (e.code === "KeyF") launchFireworks();
+  if (e.code === "ArrowRight") goNext();
+  if (e.code === "ArrowLeft") goPrev();
+});
+
+/* Start */
+goNext();
+</script>
+
+</body>
+</html>
