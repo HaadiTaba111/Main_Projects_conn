@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لایراکس — استودیوی کلیپ لیریکس (بهینه‌شده با مکعب ۳بعدی)</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ لایراکس — استودیوی لیپ لیریکس</div>
+  <div class="header-controls">
+    <select id="renderEngineSelect">
+      <option value="ffmpeg">FFmpeg (سریع)</option>
+      <option value="moviepy">MoviePy (انعطاف‌پذیر)</option>
+    </select>
+    <button id="btnRenderVideo" class="btn btn-primary">🎬 رندر ویدیو</button>
+  </div>
+</header>
+
+<div class="project-bar">
+  <div class="form-group">
+    <label>نام پروژه:</label>
+    <input type="text" id="projectName" value="my_awesome_clip" style="width:180px;">
+    <button id="btnLoadProject" class="btn">📂 بارگذاری</button>
+    <button id="btnSaveProject" class="btn btn-success">💾 ذخیره</button>
+  </div>
+  <div class="form-group">
+    <label>رزولوشن:</label>
+    <select id="resolutionSelect">
+      <option value="1080,1920">۱۰۸۰×۱۹۲۰ (عموی)</option>
+      <option value="1080,1080">۱۰۸۰×۱۰۸۰ (مربع)</option>
+      <option value="1920,1080">۱۹۲۰×۱۰۸۰ (افقی)</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>FPS:</label>
+    <input type="number" id="fpsInput" value="30" min="15" max="60" style="width:60px;">
+  </div>
+  <div class="form-group">
+    <label>پس‌زمینه:</label>
+    <input type="color" id="bgColorInput" value="#000000">
+  </div>
+</div>
+
+<main>
+  <div class="panel panel-left">
+    <div class="panel-title">📁 فایل‌های رسانه‌ای</div>
+    <div class="upload-area" id="uploadArea">
+      <div style="font-size:2rem;margin-bottom:8px;">📥</div>
+      <div>کلیک یا درگ فایل (mp3, wav, mp4, jpg, png)</div>
+    </div>
+    <input type="file" id="fileUploadInput" multiple style="display:none;">
+    <div class="file-list" id="uploadedFilesList"></div>
+  </div>
+
+  <div class="panel panel-center">
+    <div class="panel-title">👁 پیش‌نمایش زنده</div>
+
+    <div class="cube-stage" id="cubeStage">
+      <div class="cube-scene">
+        <div class="cube" id="lyricsCube">
+          <div class="cube-face face-front"><span class="cube-text"></span></div>
+          <div class="cube-face face-back"><span class="cube-text"></span></div>
+          <div class="cube-face face-right"><span class="cube-text"></span></div>
+          <div class="cube-face face-left"><span class="cube-text"></span></div>
+          <div class="cube-face face-top"><span class="cube-text"></span></div>
+          <div class="cube-face face-bottom"><span class="cube-text"></span></div>
+        </div>
+      </div>
+      <canvas id="particleCanvas"></canvas>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="previewCanvas" width="270" height="480"></canvas>
+    </div>
+
+    <div class="player-controls">
+      <div class="time-display">
+        <span id="timeText">00:00.0 / 00:00.0</span>
+      </div>
+      <input type="range" id="timelineSlider" class="timeline-slider" min="0" max="10" step="0.1" value="0">
+      <div class="playback-buttons">
+        <button id="btnPlay" class="btn btn-primary">▶ پخش</button>
+        <button id="btnPause" class="btn" style="display:none;">⏸ وقه</button>
+        <button id="btnSeekStart" class="btn">⏮ ابتدا</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel panel-right">
+    <div class="panel-title">🎤 همگام‌سازی لیریکس</div>
+
+    <textarea id="rawLyricsText" rows="6" placeholder="متن لیریکس را اینجا وارد کنید...
+هر خط = یک خط از آهنگ"></textarea>
+    <div style="display:flex;gap:8px;">
+      <button id="btnLoadLyrics" class="btn btn-primary" style="flex:1;">📋 بارگذاری متن</button>
+      <select id="lyricAnimationSelect" style="flex:1;">
+        <option value="karaoke_glow">کارائوکه + درخشش</option>
+        <option value="fade_zoom">محو + زوم</option>
+        <option value="kinetic_popup">پرش سینمایی</option>
+        <option value="clean_lemon">ساده لیمویی</option>
+        <option value="cube_3d" selected>🎲 مکعب ۳بعدی</option>
+      </select>
+    </div>
+
+    <div class="lyrics-interactive-box">
+      <div class="current-lyric-display" id="currentLyricBox">آماده همگام‌سازی</div>
+      <div class="sync-buttons">
+        <button id="btnPrevLine" class="btn btn-sync">⏪ خط قبلی</button>
+        <button id="btnNextLine" class="btn btn-sync btn-sync-next">خط بعدی ⏩</button>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:10px;">📋 تایم‌لاین ایونت‌ها</div>
+    <div class="events-table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>نوع</th><th>نام</th><th>محتوا</th><th>شروع</th><th>پایان</th>
+            <th>X</th><th>Y</th><th>W</th><th>H</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="eventsTableBody"></tbody>
+      </table>
+    </div>
+    <button id="btnAddEvent" class="btn" style="width:100%;margin-top:8px;">+ افزودن المان سفارشی</button>
+  </div>
+</main>
+
+<div class="modal-overlay" id="progressModal">
+  <div class="modal-card">
+    <h3 style="color:var(--lemon);margin-bottom:1rem;">⏳ در حال رندر ویدیو...</h3>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div id="renderMessage">در حال آماده‌سازی...</div>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

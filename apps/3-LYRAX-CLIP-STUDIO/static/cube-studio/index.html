@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لایراکس — مکعب سه‌بعدی لیریکس</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+  <!-- Upload / Controls -->
+  <div id="controls">
+    <h2>🎵 لایراکس — مکعب سه‌بعدی لیریکس</h2>
+    <input type="file" id="audioInput" accept="audio/*">
+    <textarea id="lyricsInput" rows="8" placeholder="متن لیریکس را اینجا بگذار...
+هر خط = یک خط از آهنگ
+زمان‌ها به‌صورت [mm:ss.xx] یا [ss.xx]
+کلمه‌ی ویژه را بین *ستاره* بگذار: این یک *تست* است"></textarea>
+    <div class="btn-row">
+      <button id="btnPlay">▶ پخش و رندر</button>
+      <button id="btnStop">⏹ وقف</button>
+      <button id="btnExport">📥 خروجی ویدیویی (WebM)</button>
+    </div>
+    <p class="key-hint" style="font-size:0.82rem; color:#8b8b9a; line-height:1.8; margin:6px 0;">
+      👆 <b>Space</b> یا <b>→</b> = خط بعدی (مکعب از پایین به بالا می‌چرخد) · <b>←</b> = خط قبلی ·
+      فقط وجه خط جاری متن دارد. کلمه‌های بین <b>*ستاره*</b> روی وجه، زرد و درشت نمایش داده می‌شوند.
+    </p>
+    <div class="options">
+      <label>سرعت چرخش: <input type="range" id="rotSpeed" min="1" max="10" value="4"></label>
+      <label>رنگ مکعب: <input type="color" id="cubeColor" value="#ff0055"></label>
+      <label>رنگ متن: <input type="color" id="textColor" value="#ffffff"></label>
+      <label>اندازه مکعب: <input type="range" id="cubeSize" min="200" max="600" value="380"></label>
+    </div>
+    <div id="status">آماده</div>
+    <div id="timeDisplay">00:00 / 00:00</div>
+  </div>
+
+  <!-- 3D Cube Stage -->
+  <div id="stage">
+    <div class="scene">
+      <div class="cube" id="lyricsCube">
+        <div class="face face-front"><span class="lyric-text"></span></div>
+        <div class="face face-back"><span class="lyric-text"></span></div>
+        <div class="face face-right"><span class="lyric-text"></span></div>
+        <div class="face face-left"><span class="lyric-text"></span></div>
+        <div class="face face-top"><span class="lyric-text"></span></div>
+        <div class="face face-bottom"><span class="lyric-text"></span></div>
+      </div>
+    </div>
+    <!-- Particle effects -->
+    <canvas id="particleCanvas"></canvas>
+    <!-- Audio visualizer rings -->
+    <canvas id="vizCanvas"></canvas>
+  </div>
+</div>
+
+<!-- Hidden audio element -->
+<audio id="audioEl" crossorigin="anonymous"></audio>
+
+<!-- Hidden canvas for video export -->
+<canvas id="exportCanvas" width="1080" height="1920" style="display:none;"></canvas>
+
+<script type="module" src="js/app.js"></script>
+  <div style="text-align:center; margin-top:14px; font-size:0.9rem;">
+    <a href="/" style="color:#ff4d8d; text-decoration:none; font-weight:bold;">⬅️ برگشت به استودیوی اصلی لیراکس</a>
+    <p style="color:#8b8b9a; margin-top:6px;">این صفحه همان بسته‌ی «مکعب سه‌بعدی لیراکس» است که داخل برنامه‌ی لیراکس قرار گرفته؛ خروجی ویدیویی WebM از همین‌جا گرفته می‌شود.</p>
+  </div>
+</body>
+</html>

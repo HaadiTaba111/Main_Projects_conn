@@ -1,0 +1,15 @@
+# وابستگی‌های آموزش پیوستهٔ مغز شاعر (فقط برای PC/GPU — نه Termux)
+#
+# خود «مغز زندهٔ شاعر» (persian_living_brain.py) و ابزارهای سنجش
+# (continual/continual_eval.py و continual/prepare_poet_tasks.py) هیچ وابستگی
+# بیرونی ندارند و روی Termux هم اجرا می‌شوند. این فایل فقط برای گام آموزش
+# (continual/poet_continual_sft.py) است که به GPU نیاز دارد.
+
+torch>=2.1.0
+transformers>=4.44.0
+peft>=0.11.0
+accelerate>=0.33.0
+datasets>=2.20.0
+# برای QLoRA 4-bit روی RTX 3060 (8GB VRAM)
+bitsandbytes>=0.43.0
+sentencepiece>=0.2.0

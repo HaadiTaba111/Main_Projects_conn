@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">LyraX Studio</string>
+    <string name="default_url">http://10.1.19.2:5000</string>
+    <string name="server_settings">تنظیم آدرس سرور لیریکس</string>
+    <string name="enter_url_prompt">آدرس سرور LyraX یا آی‌پی PdaNet را وارد کنید:</string>
+    <string name="save">ذخیره و اتصال</string>
+    <string name="cancel">انصراف</string>
+    <string name="retry">تلاش مجدد</string>
+    <string name="error_connecting">خطا در اتصال به استودیو لیریکس</string>
+    <string name="check_server_msg">لطفاً مطمئن شوید که سرور Clip Studio / LyraX روی کامپیوتر با پورت 5000 در حال اجراست.</string>
+</resources>

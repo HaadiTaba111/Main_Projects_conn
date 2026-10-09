@@ -1,0 +1,36 @@
+{
+  "_comment": "ساخته‌شده با prepare_poet_tasks.py — آموزش پیوسته مغز شاعر (از ریشهٔ همین پوشه اجرا کنید)",
+  "dataset_source": "datasets/persian_poet_satire_sft.jsonl",
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "output_dir": "continual/out",
+  "matrix_out": "continual/results.json",
+  "tasks": [
+    {
+      "name": "شعر کلاسیک (سعدی/حافظ)",
+      "file": "continual/data/classical_poetry.jsonl"
+    },
+    {
+      "name": "شعر عرفانی (مولانا)",
+      "file": "continual/data/mystical_rumi.jsonl"
+    },
+    {
+      "name": "ضرب‌المثل و حکمت",
+      "file": "continual/data/proverbs_wisdom.jsonl"
+    },
+    {
+      "name": "طنز و طنزپردازی (عبید/دهخدا)",
+      "file": "continual/data/satire_humor.jsonl"
+    }
+  ],
+  "epochs": 2,
+  "batch_size": 1,
+  "grad_accum": 8,
+  "lr": 0.0002,
+  "max_length": 512,
+  "load_in_4bit": true,
+  "lora_r": 16,
+  "lora_alpha": 32,
+  "lora_dropout": 0.05,
+  "bf16": true,
+  "attention_hook": null
+}

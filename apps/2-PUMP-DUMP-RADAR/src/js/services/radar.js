@@ -1,0 +1,356 @@
+import { readJson, writeJson } from '../core/utils.js';
+import { STORAGE_KEYS } from '../core/config.js';
+
+// توکن‌های اهرمی (UP/DOWN/3L/3S/BULL/BEAR) هیچ‌وقت پمپ واقعی حساب نمی‌شوند
+const LEVERAGED_RE = /((UP|DOWN|BULL|BEAR|3L|3S)USDT)$/i;
+const num = value => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+async function defaultFetchJson(url, timeoutMs = 5500) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' }, cache: 'no-store' });
+    const body = await response.json();
+    if (!response.ok) throw new Error(`${response.status}: ${body?.retMsg || body?.error || response.statusText || 'HTTP error'}`);
+    if (body && body.retCode !== undefined && Number(body.retCode) !== 0) {
+      throw new Error(`Bybit ${body.retCode}: ${body.retMsg || 'API error'}`);
+    }
+    if (body && body.code !== undefined && String(body.code) !== '0') {
+      throw new Error(`Exchange ${body.code}: ${body.msg || 'API error'}`);
+    }
+    return body;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchJsonFallback(fetcher, candidates) {
+  const failures = [];
+  for (const candidate of candidates) {
+    try {
+      return { body: await fetcher(candidate.url), route: candidate.route };
+    } catch (error) {
+      failures.push(`${candidate.route}: ${error?.message || 'network error'}`);
+    }
+  }
+  throw new Error(failures.join(' | '));
+}
+
+/**
+ * رادار پمپ/دامپ — کل بازار با failover (پراکسی سرور → مستقیم؛ Bybit → Binance → OKX → CoinGecko).
+ * این ماژول در این پروژه مستقل زندگی می‌کند و با اتوتریدر Futures Scalp Lab
+ * هیچ runtime مشترکی ندارد؛ تنها راه ارتباط (اختیاری) پل HTTP یک‌طرفه است.
+ */
+export class PumpRadar {
+  constructor(settings, logger, deps = {}) {
+    this.s = settings;
+    this.log = logger;
+    this.now = deps.now || (() => Date.now());
+    this.fetchJson = deps.fetchJson || defaultFetchJson;
+    this.storage = deps.storage || {
+      read: (key, fallback) => readJson(key, fallback),
+      write: (key, value) => writeJson(key, value)
+    };
+    this.history = Array.isArray(this.storage.read(STORAGE_KEYS.radarHistory, null)) ? this.storage.read(STORAGE_KEYS.radarHistory, []) : [];
+    this.firstSeen = this.storage.read(STORAGE_KEYS.radarFirstSeen, {}) || {};
+    this.active = new Map();
+    this.recentEvents = [];
+    this.readdBlockedUntil = new Map();
+    this.movers = [];
+    this.meta = { lastPollAt: 0, universe: 0, source: '--', error: '', warmupRemainMin: null };
+  }
+
+  enabled() {
+    return String(this.s.value.radarEnabled) === 'true';
+  }
+
+  shouldPoll(force = false) {
+    if (!this.enabled()) return false;
+    if (force) return true;
+    const gapMs = Math.max(10, Number(this.s.value.radarPollSec) || 10) * 1000;
+    return this.now() - Number(this.meta.lastPollAt || 0) >= gapMs;
+  }
+
+  blacklist() {
+    return String(this.s.value.radarBlacklist || '')
+      .split(',').map(item => item.trim().toUpperCase()).filter(Boolean);
+  }
+
+  allowedSymbols() {
+    return String(this.s.value.radarAllowedSymbols || '')
+      .split(',').map(item => item.trim().toUpperCase()).filter(Boolean);
+  }
+
+  isSymbolAllowed(symbol) {
+    const mode = String(this.s.value.radarFilterMode || 'all');
+    if (mode === 'all') return true;
+    const allowed = this.allowedSymbols();
+    if (!allowed.length) return true;
+    return allowed.includes(String(symbol || '').toUpperCase());
+  }
+
+  excluded(symbol) {
+    const value = String(symbol || '').toUpperCase();
+    if (!this.isSymbolAllowed(value)) return true;
+    return this.blacklist().includes(value) || LEVERAGED_RE.test(value);
+  }
+
+  // زنجیرهٔ بازار کامل: ابتدا same-origin proxy سرور Termux، سپس endpoint مستقیم مرورگر.
+  // ترتیب failover حفظ می‌شود؛ خطاها نیز برای عیب‌یابی UI نگه داشته می‌شوند.
+  async fetchUniverse() {
+    const failures = [];
+    const source = async (name, proxyUrl, directUrl) => {
+      try {
+        return await fetchJsonFallback(this.fetchJson, [
+          { url: proxyUrl, route: 'SERVER PROXY' },
+          { url: directUrl, route: 'DIRECT' }
+        ]);
+      } catch (error) {
+        failures.push(`${name}: ${error.message}`);
+        return null;
+      }
+    };
+
+    // ۱) Bybit V5 — همهٔ فیوچرز linear در یک پاسخ
+    const bybit = await source(
+      'Bybit',
+      `/api/market/bybit/v5/market/tickers?category=${encodeURIComponent(this.s.value.bybitCategory || 'linear')}`,
+      `https://api.bybit.com/v5/market/tickers?category=${encodeURIComponent(this.s.value.bybitCategory || 'linear')}`
+    );
+    const bybitList = bybit?.body?.result?.list;
+    if (Array.isArray(bybitList)) {
+      const rows = [];
+      for (const r of bybitList) {
+        const symbol = String(r?.symbol || '');
+        const price = num(r?.lastPrice);
+        if (!symbol || price === null) continue;
+        const ch24 = num(r?.price24hPcnt);
+        rows.push({ symbol, price, turnover24h: num(r?.turnover24h) || 0, change24hPct: ch24 === null ? null : ch24 * 100 });
+      }
+      if (rows.length > 20) return { rows, source: `BYBIT LIVE (${bybit.route})` };
+    }
+    if (bybit) failures.push('Bybit: پاسخ بازار خالی/نامعتبر');
+
+    // ۲) Binance spot tickers
+    const binance = await source(
+      'Binance',
+      '/api/market/binance/api/v3/ticker/24hr',
+      'https://api.binance.com/api/v3/ticker/24hr'
+    );
+    if (Array.isArray(binance?.body) && binance.body.length) {
+      const rows = binance.body
+        .filter(r => String(r.symbol || '').endsWith('USDT') && num(r.lastPrice) !== null)
+        .map(r => ({ symbol: String(r.symbol), price: Number(r.lastPrice), turnover24h: num(r.quoteVolume) || 0, change24hPct: num(r.priceChangePercent) }));
+      if (rows.length) return { rows, source: `BINANCE LIVE (${binance.route})` };
+    }
+    if (binance) failures.push('Binance: پاسخ بازار خالی/نامعتبر');
+
+    // ۳) OKX spot tickers
+    const okx = await source(
+      'OKX',
+      '/api/market/okx/api/v5/market/tickers?instType=SPOT',
+      'https://www.okx.com/api/v5/market/tickers?instType=SPOT'
+    );
+    const okxData = okx?.body?.data;
+    if (Array.isArray(okxData) && okxData.length) {
+      const rows = okxData
+        .filter(r => String(r.instId || '').endsWith('-USDT') && num(r.last) !== null)
+        .map(r => ({ symbol: String(r.instId).replace('-', ''), price: Number(r.last), turnover24h: num(r.volCcy24h) || 0, change24hPct: null }));
+      if (rows.length) return { rows, source: `OKX LIVE (${okx.route})` };
+    }
+    if (okx) failures.push('OKX: پاسخ بازار خالی/نامعتبر');
+
+    // ۴) CoinGecko markets endpoint — منبع جایگزین، نه دادهٔ ساختگی
+    const coinGecko = await source(
+      'CoinGecko',
+      '/api/market/coingecko/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h',
+      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
+    );
+    if (Array.isArray(coinGecko?.body) && coinGecko.body.length) {
+      const rows = coinGecko.body
+        .filter(r => r.symbol && num(r.current_price) !== null)
+        .map(r => ({
+          symbol: `${String(r.symbol).toUpperCase()}USDT`,
+          price: Number(r.current_price),
+          turnover24h: num(r.total_volume) || 0,
+          change24hPct: num(r.price_change_percentage_24h)
+        }));
+      if (rows.length) return { rows, source: `COINGECKO LIVE (${coinGecko.route})` };
+    }
+    if (coinGecko) failures.push('CoinGecko: پاسخ بازار خالی/نامعتبر');
+    throw new Error(`رادار: هیچ منبع زنده پاسخ نداد — ${failures.join(' | ')}`);
+  }
+
+  windowRef(windowMs, nowT) {
+    const need = nowT - windowMs;
+    let ref = null;
+    for (const point of this.history) {
+      if (point.t <= need) ref = point;
+      else break;
+    }
+    return ref;
+  }
+
+  persist() {
+    try {
+      this.storage.write(STORAGE_KEYS.radarHistory, this.history);
+      this.storage.write(STORAGE_KEYS.radarFirstSeen, this.firstSeen);
+    } catch (e) { /* پر شدن localStorage نباید رادار را بخواباند */ }
+  }
+
+  promote(record, maxActive) {
+    if (this.active.has(record.symbol)) {
+      const existing = this.active.get(record.symbol);
+      existing.changePct = record.changePct;
+      existing.turnover24h = record.turnover24h;
+      existing.basis = record.basis;
+      existing.peakChangePct = Math.max(Math.abs(existing.peakChangePct || 0), Math.abs(record.changePct));
+      return false;
+    }
+    if (Number(this.readdBlockedUntil.get(record.symbol) || 0) > this.now()) return false;
+    this.active.set(record.symbol, { ...record, peakChangePct: Math.abs(record.changePct) });
+    if (this.active.size > maxActive) {
+      let oldest = null;
+      for (const rec of this.active.values()) if (!oldest || rec.since < oldest.since) oldest = rec;
+      if (oldest) this.active.delete(oldest.symbol);
+    }
+    return true;
+  }
+
+  emitEvent(events, type, m, basis, extra = {}) {
+    const event = {
+      t: this.now(),
+      type,
+      symbol: m.symbol,
+      price: Number(m.price) || null, // برای اعتبارسنج: قیمت لحظهٔ رخداد
+      changePct: Number(m.changePct.toFixed(2)),
+      basis,
+      turnover24h: m.turnover24h,
+      ...extra
+    };
+    events.push(event);
+    this.recentEvents.unshift(event);
+    this.recentEvents = this.recentEvents.slice(0, 60);
+  }
+
+  async poll() {
+    const s = this.s.value;
+    const nowT = this.now();
+    const { rows, source } = await this.fetchUniverse();
+    this.meta = { ...this.meta, lastPollAt: nowT, universe: rows.length, source, error: '' };
+
+    const windowMs = Math.max(5, Number(s.radarWindowMin) || 60) * 60000;
+    const resMs = Math.max(
+      Math.max(60, Number(s.radarHistoryResolutionSec) || 300) * 1000,
+      Math.ceil(windowMs / 20)
+    );
+    const prices = {};
+    for (const r of rows) prices[r.symbol] = r.price;
+    const lastPoint = this.history.at(-1);
+    if (!lastPoint || nowT - lastPoint.t >= resMs) {
+      this.history.push({ t: nowT, p: prices });
+      const maxPoints = Math.ceil(windowMs / resMs) + 6;
+      this.history = this.history.slice(-Math.max(6, maxPoints));
+      this.persist();
+    } else {
+      lastPoint.p = prices;
+    }
+
+    const warmed = !!this.windowRef(windowMs, nowT);
+    const warmupFallback = String(s.radarWarmupFallback) === 'true';
+    this.meta.warmupRemainMin = warmed ? 0 : Math.max(1, Math.ceil((windowMs - (nowT - (this.history[0]?.t || nowT))) / 60000));
+
+    const firstRun = Object.keys(this.firstSeen).length === 0;
+    const newListingMin = Number(s.radarNewListingMin) || 720;
+    let newSymbols = 0;
+    for (const r of rows) {
+      if (this.firstSeen[r.symbol] === undefined) {
+        this.firstSeen[r.symbol] = nowT;
+        newSymbols += 1;
+      }
+    }
+    if (newSymbols > 0) this.persist();
+
+    const movers = [];
+    for (const r of rows) {
+      if (this.excluded(r.symbol)) continue;
+      let changePct = null;
+      let basis = 'window';
+      const refPrice = warmed ? this.windowRef(windowMs, nowT)?.p?.[r.symbol] : undefined;
+      if (warmed && Number.isFinite(Number(refPrice)) && Number(refPrice) > 0) {
+        changePct = (r.price / Number(refPrice) - 1) * 100;
+      } else if (warmupFallback && r.change24hPct !== null && r.change24hPct !== undefined) {
+        changePct = r.change24hPct;
+        basis = '24h-proxy';
+      }
+      if (changePct === null || !Number.isFinite(changePct)) continue;
+      const ageMin = (nowT - Number(this.firstSeen[r.symbol] ?? nowT)) / 60000;
+      movers.push({ symbol: r.symbol, price: r.price, changePct, basis, turnover24h: r.turnover24h, change24hPct: r.change24hPct, isNew: ageMin <= newListingMin, ageMin });
+    }
+    movers.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
+    this.movers = movers.slice(0, 40);
+
+    const events = [];
+    const pumpThr = Number(s.radarPumpThresholdPct);
+    const dumpThr = Number(s.radarDumpThresholdPct);
+    const minTurnover = Number(s.radarMinTurnover24h);
+    const maxActive = Math.max(1, Number(s.radarMaxSymbols) || 8);
+    const alertNew = String(s.radarNewListingAlert) === 'true';
+
+    for (const m of movers) {
+      if (m.turnover24h < minTurnover) continue;
+      const isPump = m.changePct >= pumpThr;
+      const isDump = m.changePct <= dumpThr;
+      const freshListing = !firstRun && m.isNew && m.ageMin <= 5;
+
+      if (isPump || isDump) {
+        const side = isPump ? 'LONG' : 'SHORT';
+        const added = this.promote({ symbol: m.symbol, side, changePct: m.changePct, basis: m.basis, since: nowT, turnover24h: m.turnover24h, isNew: m.isNew }, maxActive);
+        if (added) this.emitEvent(events, isPump ? 'PUMP' : 'DUMP', m, m.basis, { side });
+      } else if (freshListing && alertNew) {
+        const added = this.promote({ symbol: m.symbol, side: 'WATCH', changePct: m.changePct, basis: m.basis, since: nowT, turnover24h: m.turnover24h, isNew: true }, maxActive);
+        if (added) this.emitEvent(events, 'NEW', m, m.basis, { side: 'WATCH' });
+      }
+    }
+
+    const ttlMs = Math.max(5, Number(s.radarTtlMin) || 120) * 60000;
+    const readdBlockMs = 30 * 60000;
+    for (const [symbol, rec] of [...this.active.entries()]) {
+      const faded = rec.side !== 'WATCH' && Math.abs(rec.changePct) < Math.min(Math.abs(pumpThr), Math.abs(dumpThr)) * 0.5;
+      const expired = nowT - rec.since >= ttlMs;
+      if (faded || expired) {
+        this.active.delete(symbol);
+        this.readdBlockedUntil.set(symbol, nowT + readdBlockMs);
+      }
+    }
+    for (const symbol of [...this.readdBlockedUntil.keys()]) {
+      if (this.readdBlockedUntil.get(symbol) <= nowT) this.readdBlockedUntil.delete(symbol);
+    }
+    return events;
+  }
+
+  tradeableSymbols() {
+    return [...this.active.values()].filter(rec => rec.side !== 'WATCH').map(rec => rec.symbol);
+  }
+
+  snapshot() {
+    const s = this.s.value;
+    const nowT = this.now();
+    const ttlMs = Math.max(5, Number(s.radarTtlMin) || 120) * 60000;
+    const active = [...this.active.values()].map(rec => ({ ...rec, ttlRemainMin: Math.max(0, Math.round((rec.since + ttlMs - nowT) / 60000)) }));
+    return {
+      enabled: this.enabled(),
+      source: this.meta.source,
+      lastPollAt: this.meta.lastPollAt,
+      universe: this.meta.universe,
+      warmupRemainMin: this.meta.warmupRemainMin,
+      error: this.meta.error,
+      movers: this.movers.slice(0, 12),
+      active,
+      events: this.recentEvents.slice(0, 20)
+    };
+  }
+}

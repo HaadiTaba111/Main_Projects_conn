@@ -1,0 +1,26 @@
+# ===== محرمانه: هستهٔ DSA و داده‌های حساس — هرگز وارد Git نشود =====
+.dsa_vault/
+*.dsa.zip
+
+# ===== فایل‌های موقت و محیط محلی =====
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.coverage
+node_modules/
+*.log
+.clip_studio.pid
+
+# ===== کلیدها و اسرار =====
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# ===== حافظهٔ محلی و خروجی‌های بزرگ =====
+experience.db
+.qwen_hands_eyes/

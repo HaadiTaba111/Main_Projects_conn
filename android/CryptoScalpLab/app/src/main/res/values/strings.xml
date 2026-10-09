@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Bybit Scalp Lab</string>
+    <string name="default_url">http://10.1.19.2:8787</string>
+    <string name="server_settings">تنظیم آدرس سرور</string>
+    <string name="enter_url_prompt">آدرس سرور یا آی‌پی PdaNet را وارد کنید:</string>
+    <string name="save">ذخیره و اتصال</string>
+    <string name="cancel">انصراف</string>
+    <string name="retry">تلاش مجدد</string>
+    <string name="error_connecting">خطا در اتصال به سرور</string>
+    <string name="check_server_msg">لطفاً مطمئن شوید که سرور Futures PWA روی کامپیوتر یا PdaNet با پورت 8787 در حال اجراست.</string>
+</resources>

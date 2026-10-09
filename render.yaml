@@ -1,0 +1,32 @@
+services:
+  # 1. Universal Master Hub (Node.js + Python All-in-One Dashboard)
+  - type: web
+    name: skyground-universal-hub
+    runtime: node
+    buildCommand: npm --version
+    startCommand: node universal_hub.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  # 2. Futures Scalp Lab PWA (Node.js)
+  - type: web
+    name: futures-scalp-pwa
+    runtime: node
+    rootDir: apps/1-AUTOTRADE-FUTURES-PWA
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  # 3. LyraX Clip Studio Pro (Python Flask)
+  - type: web
+    name: lyrax-clip-studio
+    runtime: python
+    rootDir: apps/3-LYRAX-CLIP-STUDIO
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    plan: free

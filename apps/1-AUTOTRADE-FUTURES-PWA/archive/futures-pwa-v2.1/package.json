@@ -1,0 +1,13 @@
+{
+  "name": "futures-scalp-lab",
+  "version": "2.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check src/js/main.js && node --check src/js/app.js && node --check src/js/core/config.js && node --check src/js/core/utils.js && node --check src/js/services/logger.js && node --check src/js/services/settings-store.js && node --check src/js/services/market-client.js && node --check src/js/services/strategy.js && node --check src/js/services/paper-broker.js && node --check src/js/services/real-broker.js && node --check src/js/services/performance-report.js && node --check src/js/ui/price-chart.js && node --check src/js/ui/view.js",
+    "test": "node --test \"tests/*.test.mjs\""
+  },
+  "description": "Mobile-first PWA for live futures signal scanning (Bybit linear, failover OKX USDT-SWAP / Binance USD-M only) with fee-aware paper trading. No synthetic fallback."
+}

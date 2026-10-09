@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark">
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- Error Layout (shown when LyraX server is unreachable) -->
+    <LinearLayout
+        android:id="@+id/errorLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone"
+        android:background="@color/bg_dark">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚡ LYRAX STUDIO"
+            android:textColor="@color/accent_lemon"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="عدم برقراری ارتباط با استودیو لیریکس"
+            android:textColor="@color/text_light"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/errorDetailText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/check_server_msg"
+            android:textColor="@color/text_muted"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="24dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRetry"
+            android:layout_width="220dp"
+            android:layout_height="wrap_content"
+            android:text="تلاش مجدد (Retry)"
+            android:backgroundTint="@color/accent_lemon"
+            android:textColor="#0a0c0f"
+            android:textStyle="bold"
+            app:cornerRadius="12dp"
+            android:layout_marginBottom="12dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnChangeIp"
+            android:layout_width="220dp"
+            android:layout_height="wrap_content"
+            android:text="⚙️ تغییر آی‌پی سرور"
+            android:backgroundTint="#1e2530"
+            android:textColor="@color/text_light"
+            app:cornerRadius="12dp"/>
+
+    </LinearLayout>
+
+    <!-- Floating IP Config Quick Button (Bottom Right) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/server_settings"
+        android:src="@android:drawable/ic_menu_preferences"
+        app:tint="@color/text_light"
+        app:backgroundTint="#1e2530"
+        app:fabSize="mini"
+        app:elevation="4dp" />
+
+</RelativeLayout>

@@ -1,0 +1,225 @@
+.effect-registry-status {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.effect-add-row {
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+}
+
+.effect-add-row select {
+    flex: 1 1 230px;
+    min-width: 180px;
+}
+
+.effect-layers-list {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.effect-empty-state,
+.effect-layer-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-input-darker);
+    padding: 0.8rem;
+}
+
+.effect-empty-state {
+    color: var(--text-muted);
+    text-align: center;
+    font-size: 0.88rem;
+}
+
+.effect-layer-card {
+    border-inline-start: 4px solid var(--accent-purple);
+}
+
+.effect-layer-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.effect-layer-header strong {
+    color: var(--text-primary);
+    font-size: 0.98rem;
+}
+
+.effect-layer-order,
+.effect-layer-event-count {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}
+
+.effect-enabled-label {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    color: var(--success);
+    font-size: 0.82rem;
+    margin-inline-start: auto;
+}
+
+.effect-enabled-label input {
+    accent-color: var(--success);
+}
+
+.effect-layer-actions,
+.effect-manual-triggers,
+.effect-quick-group {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.effect-small-button {
+    border: 1px solid var(--border-color);
+    border-radius: 7px;
+    background: var(--btn-default-bg);
+    color: var(--text-primary);
+    padding: 0.3rem 0.58rem;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.effect-small-button:hover {
+    border-color: var(--accent-purple);
+}
+
+.effect-small-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.effect-remove-button {
+    color: var(--danger);
+}
+
+.effect-trigger-button {
+    color: var(--lemon);
+    border-color: color-mix(in srgb, var(--lemon) 45%, var(--border-color));
+    font-weight: 700;
+}
+
+.effect-layer-description,
+.effect-layer-warning {
+    margin-top: 0.45rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+.effect-layer-warning {
+    color: var(--warning);
+}
+
+.effect-layer-time-range {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.7rem 0.9rem;
+    margin-top: 0.7rem;
+}
+
+.effect-layer-time-range label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.effect-layer-time-range input {
+    min-width: 0;
+    width: 100%;
+}
+
+.effect-controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.7rem 0.9rem;
+    margin: 0.75rem 0;
+}
+
+.effect-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.effect-control input,
+.effect-control select {
+    min-width: 0;
+    width: 100%;
+}
+
+.effect-control input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.effect-control input[type="color"] {
+    width: 48px;
+    min-height: 34px;
+    padding: 2px;
+}
+
+.effect-control output {
+    color: var(--lemon);
+    font-variant-numeric: tabular-nums;
+}
+
+.effect-manual-triggers {
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.effect-manual-triggers > span,
+.effect-quick-group > span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.effect-layer-event-count {
+    margin-top: 0.5rem;
+}
+
+.effect-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    width: 100%;
+    margin-top: 0.4rem;
+}
+
+.effect-quick-group {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-card);
+}
+
+.effect-quick-hint {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    text-align: center;
+    padding: 0.25rem;
+}
+
+@media (max-width: 600px) {
+    .effect-layer-header strong { flex: 1 1 100%; }
+    .effect-enabled-label { margin-inline-start: 0; }
+    .effect-controls-grid { grid-template-columns: 1fr 1fr; }
+    .effect-quick-group { align-items: stretch; }
+}

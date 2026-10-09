@@ -1,0 +1,9 @@
+# Android/Termux uses its native `ffmpeg` package. Avoid MoviePy/imageio-ffmpeg
+# here; neither is used by the Termux render path and Android wheels are unavailable.
+flask>=3.0.0
+pillow>=10.0.0
+numpy>=1.24.0
+arabic-reshaper>=3.0.0
+# 0.4.2 is the pure-Python implementation; newer versions build a Rust extension.
+python-bidi==0.4.2
+python-dotenv>=1.0.0

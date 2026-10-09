@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this research or benchmark, please cite it as below."
+authors:
+  - family-names: "Tabatabaei"
+    given-names: "Hadi"
+    orcid: "https://orcid.org/0009-0006-0210-7479"
+title: "Dynamic Synaptic Architecture (DSA): A Non-Euclidean Topological State-Space Framework for Mitigating Catastrophic Forgetting in Continual Learning"
+version: 1.0.0
+doi: "10.5281/zenodo.22780163"
+date-released: 2026-09-16
+url: "https://doi.org/10.5281/zenodo.22780163"
+repository-code: "https://github.com/HaadiTaba111/Main_Arena_conn"
+license: "Apache-2.0"
+keywords:
+  - "continual learning"
+  - "catastrophic forgetting"
+  - "dynamic synaptic architecture"
+  - "deep state adaptation"
+  - "non-euclidean manifold"
+  - "synaptic consolidation"
+  - "zero parameter overhead"
