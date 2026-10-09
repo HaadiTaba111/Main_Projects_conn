@@ -46,7 +46,7 @@ EFFECT_SPEC = {
         ]},
     ],
     "manual_triggers": [
-        {"id": "single", "label": "🎆 آتش‌بازی", "payload": {"tier": 1}, "hotkey": "5"},
+        {"id": "single", "label": "🎆 آتش‌بازی", "payload": {"tier": 1}},
         {"id": "double", "label": "🎇 دو انفجار", "payload": {"tier": 2}},
         {"id": "finale", "label": "✨ فیناله", "payload": {"tier": 3}},
     ],

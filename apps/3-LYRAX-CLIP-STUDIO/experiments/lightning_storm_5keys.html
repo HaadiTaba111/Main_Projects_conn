@@ -34,7 +34,7 @@
     <div class="key" data-key="2"><b>2</b> ⚡ کلفت‌تر</div>
     <div class="key" data-key="3"><b>3</b> 🌩️ قوی و شاخه‌دار</div>
     <div class="key" data-key="4"><b>4</b> 🌌 رعد طبیعی</div>
-    <div class="key" data-key="5" style="grid-column: span 2;"><b>5</b> 🎆 آتش‌بازی</div>
+    <div class="key" data-key="space" style="grid-column: span 2;"><b>Space</b> 🎆 آتش‌بازی</div>
   </div>
 
   <h3>رعد (کلید ۱–۳)</h3>
@@ -302,15 +302,15 @@ function trigger(key) {
   else if (key === '2') spawnBolt(2);
   else if (key === '3') spawnBolt(3);
   else if (key === '4') spawnNatural();
-  else if (key === '5') spawnFireworks();
+  else if (key === 'space') spawnFireworks();
   const el = document.querySelector(`.key[data-key="${key}"]`);
   if (el) { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 180); }
 }
 
 addEventListener('keydown', (e) => {
   if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName) && e.key !== 'Escape') return;
-  if (['1', '2', '3', '4', '5'].includes(e.key)) { e.preventDefault(); trigger(e.key); }
-  else if (e.code === 'Space') { e.preventDefault(); spawnFireworks(); }
+  if (['1', '2', '3', '4'].includes(e.key)) { e.preventDefault(); trigger(e.key); }
+  else if (e.code === 'Space') { e.preventDefault(); trigger('space'); }
 });
 document.querySelectorAll('.key').forEach(el => el.addEventListener('click', () => trigger(el.dataset.key)));
 $('panel').addEventListener('click', e => e.stopPropagation());

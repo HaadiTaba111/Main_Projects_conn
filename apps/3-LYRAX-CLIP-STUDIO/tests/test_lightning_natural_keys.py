@@ -18,19 +18,21 @@ class HotkeyContractTests(unittest.TestCase):
         return mapping
 
     def test_exactly_five_keys_are_bound(self):
-        self.assertEqual(sorted(self._hotkeys()), ["1", "2", "3", "4", "5"])
+        self.assertEqual(sorted(self._hotkeys()), ["1", "2", "3", "4"])
 
     def test_keys_map_to_expected_effects(self):
         mapping = self._hotkeys()
         self.assertEqual(mapping["1"], ("lightning", "tier-1"))
         self.assertEqual(mapping["3"], ("lightning", "tier-3"))
         self.assertEqual(mapping["4"], ("lightning", "tier-4"))
-        self.assertEqual(mapping["5"], ("fireworks", "single"))
+        # کلید ۵ حذف شد (تصمیم صاحب پروژه)؛ آتش‌بازی همچنان به‌عنوان تریگر دکمه‌ای موجود است.
+        self.assertNotIn("5", mapping)
+        self.assertIn("single", [t["id"] for t in fireworks.EFFECT_SPEC["manual_triggers"]])
 
     def test_manifest_served_to_browser_keeps_hotkeys(self):
         by_id = {spec["id"]: spec for spec in registry.get_effect_specs()}
         hotkeys = {t["hotkey"] for spec in by_id.values() for t in spec.get("manual_triggers", []) if "hotkey" in t}
-        self.assertEqual(hotkeys, {"1", "2", "3", "4", "5"})
+        self.assertEqual(hotkeys, {"1", "2", "3", "4"})
 
 
 class NaturalLightningTests(unittest.TestCase):
