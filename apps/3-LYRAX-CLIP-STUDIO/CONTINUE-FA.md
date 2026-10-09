@@ -13,6 +13,17 @@
 | `experiments/lyrax-3d-cube/` | مکعب سه‌بعدی (از `lyrax-3d-cube.zip`) |
 | `experiments/lyrax-test.html`, `lightning_storm.html` | صفحات تست مستقل |
 
+## کلیدهای تریگر دستی (۵ کلید)
+| کلید | افکت | توضیح |
+|---|---|---|
+| `1` | ⚡ رعد معمولی | tier 1 |
+| `2` | ⚡ رعد کلفت‌تر | tier 2 |
+| `3` | 🌩️ رعد قوی و شاخه‌دار | tier 3 |
+| `4` | 🌌 رعد طبیعی | tier 4 — الگوی storm؛ پارامترهای `naturalBranches` و `naturalSpread` |
+| `5` | 🎆 آتش‌بازی | fireworks «یک انفجار» |
+
+کلیدها از `manual_triggers[].hotkey` در هر پلاگین خوانده می‌شوند (`EffectLayerHost.hotkeyMap`). اگر لایهٔ آن افکت نباشد، خودکار با حالت دستی ساخته می‌شود. نسخهٔ مستقل: `experiments/lightning_storm_5keys.html` (با پنل پارامتر).
+
 ## اجرا
 ```bash
 bash apps/3-LYRAX-CLIP-STUDIO/bootstrap_termux.sh   # یا bootstrap_pc.sh (نصب)
@@ -23,9 +34,10 @@ bash apps/3-LYRAX-CLIP-STUDIO/start_clip_studio.sh  # http://127.0.0.1:5000
 ## تست
 ```bash
 cd apps/3-LYRAX-CLIP-STUDIO
-python3 -m unittest tests.test_cube_preview tests.test_effect_plugins
-node tests/cube_preview.test.mjs && node tests/word_reveal.test.mjs
+python3 -m unittest tests.test_cube_preview tests.test_effect_plugins tests.test_lightning_natural_keys
+node tests/cube_preview.test.mjs && node tests/word_reveal.test.mjs && node tests/lightning_natural.test.mjs
 ```
+تست `lightning_natural` هندسهٔ رعد طبیعی در JS را با خروجی Python مقایسه می‌کند؛ اگر یکی را تغییر دادی، هر دو را هم‌تراز کن.
 
 ## گام‌های بعدی پیشنهادی
 - یکپارچه‌سازی افکت‌ها (`backend/effects/`) و حذف کدهای تکراری بین `static/js` و `experiments/`.

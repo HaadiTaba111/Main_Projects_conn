@@ -1,6 +1,8 @@
 """Lightning effect plugin: beat, interval and hand-timed lightning layers."""
 from __future__ import annotations
 
+import math
+
 from backend.effects.audio import detect_beat_times
 from backend.effects.utils import clamp, deterministic_random, normalize_seed, seed_for_time
 
@@ -8,6 +10,14 @@ LIGHTNING_TIERS = {
     1: {"thickness": 4.0, "segments": 6, "wig": 12.0, "duration": 0.35, "branch": False},
     2: {"thickness": 7.0, "segments": 8, "wig": 16.0, "duration": 0.42, "branch": False},
     3: {"thickness": 11.0, "segments": 11, "wig": 22.0, "duration": 0.55, "branch": True},
+    # Tier 4: رعد طبیعی — الگوریتم بازتابی storm (lightning_storm.html): جابه‌جایی وسط‌نقطه‌ای
+    # بازگشتی، شاخه با احتمال 0.4 و زاویهٔ تصادفی، شاخه‌ها نازک‌تر از تنهٔ اصلی.
+    4: {"thickness": 5.0, "segments": 10, "wig": 20.0, "duration": 0.6, "branch": True},
+}
+
+NATURAL_STYLE = {
+    "style": "natural", "color": "#F2F7FF", "glow_color": "#9EC5FF",
+    "thickness_mult": 1.0, "duration_mult": 1.0, "branch_prob": 0.4,
 }
 
 LIGHTNING_STYLES = {
@@ -31,6 +41,8 @@ EFFECT_SPEC = {
         "colorMode": "frequency",
         "color": "#FFF700",
         "intensity": 80,
+        "naturalBranches": 4,
+        "naturalSpread": 1.0,
     },
     "controls": [
         {"key": "mode", "label": "روش تریگر", "type": "select", "options": [
@@ -47,11 +59,15 @@ EFFECT_SPEC = {
         ]},
         {"key": "color", "label": "رنگ دلخواه", "type": "color"},
         {"key": "intensity", "label": "شدت نور", "type": "range", "min": 20, "max": 100, "step": 5, "suffix": "%"},
+        {"key": "naturalBranches", "label": "شاخه‌های رعد طبیعی", "type": "range", "min": 1, "max": 6, "step": 1},
+        {"key": "naturalSpread", "label": "گستردگی رعد طبیعی", "type": "range", "min": 0.5, "max": 2.0, "step": 0.05, "suffix": "×"},
     ],
+    # کلیدهای ۱ تا ۴ این افکت هستند؛ کلید ۵ متعلق به آتش‌بازی است (fireworks.py).
     "manual_triggers": [
-        {"id": "tier-1", "label": "⚡ معمولی", "payload": {"tier": 1}},
-        {"id": "tier-2", "label": "⚡ کلفت‌تر", "payload": {"tier": 2}},
-        {"id": "tier-3", "label": "🌩️ قوی و شاخه‌دار", "payload": {"tier": 3}},
+        {"id": "tier-1", "label": "⚡ معمولی", "payload": {"tier": 1}, "hotkey": "1"},
+        {"id": "tier-2", "label": "⚡ کلفت‌تر", "payload": {"tier": 2}, "hotkey": "2"},
+        {"id": "tier-3", "label": "🌩️ قوی و شاخه‌دار", "payload": {"tier": 3}, "hotkey": "3"},
+        {"id": "tier-4", "label": "🌌 رعد طبیعی", "payload": {"tier": 4}, "hotkey": "4"},
     ],
 }
 
@@ -171,7 +187,73 @@ def _midpoint_displacement(p1, p2, displacement, roughness, seed, depth, clamp_m
     return (left[:-1] if left else []) + right
 
 
-def _build_bolt_path(start_x, start_y, side, seed, res_h, res_w, thickness, segments, wig_scale, branch, style, branch_prob=0.0):
+def _clamp_x(value, lower, upper):
+    return max(lower, min(upper, value))
+
+
+def _storm_polyline(p1, p2, displace, branches, seed, lower, upper, branch_out):
+    """Recursive midpoint displacement from the storm reference (lightning_storm.html).
+
+    Child bolts are appended to ``branch_out``; the main polyline is returned.
+    Seeds are masked to 31 bits so Python and the browser renderer stay in lockstep.
+    """
+    if displace < 2.0:
+        return [p1, p2]
+    mid_x = (p1[0] + p2[0]) / 2.0 + (deterministic_random(seed, 1, 0.0, 1.0) - 0.5) * displace
+    mid_y = (p1[1] + p2[1]) / 2.0 + (deterministic_random(seed, 2, 0.0, 1.0) - 0.5) * displace
+    mid = (_clamp_x(mid_x, lower, upper), mid_y)
+    left = _storm_polyline(p1, mid, displace / 2.0, branches - 1, (seed * 2 + 1) & 0x7FFFFFFF, lower, upper, branch_out)
+    right = _storm_polyline(mid, p2, displace / 2.0, branches - 1, (seed * 2 + 2) & 0x7FFFFFFF, lower, upper, branch_out)
+    if branches > 0 and deterministic_random(seed, 3, 0.0, 1.0) < 0.4:
+        angle = deterministic_random(seed, 4, 0.0, 2.0 * math.pi)
+        length = math.hypot(p2[0] - p1[0], p2[1] - p1[1]) * 0.4
+        tip = (_clamp_x(mid[0] + math.cos(angle) * length, lower, upper), mid[1] + math.sin(angle) * length)
+        branch_out.append(_storm_polyline(mid, tip, displace / 2.0, branches - 2, (seed * 3 + 3) & 0x7FFFFFFF, lower, upper, branch_out))
+    return left[:-1] + right
+
+
+def _ribbon_path(points, thickness):
+    """Convert a polyline into a closed ASS drawing ribbon of the given width."""
+    if len(points) < 2:
+        return ""
+    half = thickness / 2.0
+    left_side, right_side = [], []
+    for index, (px, py) in enumerate(points):
+        if index == 0:
+            dx, dy = points[1][0] - px, points[1][1] - py
+        elif index == len(points) - 1:
+            dx, dy = px - points[index - 1][0], py - points[index - 1][1]
+        else:
+            dx, dy = points[index + 1][0] - points[index - 1][0], points[index + 1][1] - points[index - 1][1]
+        length = max(0.001, (dx * dx + dy * dy) ** 0.5)
+        nx, ny = -dy / length, dx / length
+        left_side.append((px + nx * half, py + ny * half))
+        right_side.append((px - nx * half, py - ny * half))
+    polygon = left_side + list(reversed(right_side))
+    commands = [f"m {round(polygon[0][0])} {round(polygon[0][1])}"]
+    commands.extend(f"l {round(x)} {round(y)}" for x, y in polygon[1:])
+    return " ".join(commands)
+
+
+def natural_bolt_polylines(start_x, start_y, side, seed, res_h, res_w, thickness, branches, spread):
+    """Return ``[(points, width), ...]`` for one natural storm bolt (main trunk first)."""
+    dir_sign = 1 if side == "left" else -1
+    lower, upper = round(res_w * 0.08), round(res_w * 0.92)
+    end_x = _clamp_x(start_x + dir_sign * res_w * (0.06 + 0.4 * deterministic_random(seed, 60, 0.0, 1.0)), lower, upper)
+    end_y = start_y + res_h * (0.30 + 0.35 * deterministic_random(seed, 61, 0.0, 1.0))
+    branch_lines = []
+    main = _storm_polyline(
+        (start_x, start_y), (end_x, end_y), res_h * 0.16 * spread,
+        int(branches), seed & 0x7FFFFFFF, lower, upper, branch_lines,
+    )
+    return [(main, thickness)] + [(line, max(1.5, thickness * 0.6)) for line in branch_lines]
+
+
+def _build_bolt_path(start_x, start_y, side, seed, res_h, res_w, thickness, segments, wig_scale, branch, style, branch_prob=0.0,
+                     natural_branches=4, natural_spread=1.0):
+    if style == "natural":
+        polylines = natural_bolt_polylines(start_x, start_y, side, seed, res_h, res_w, thickness, natural_branches, natural_spread)
+        return " ".join(part for part in (_ribbon_path(points, width) for points, width in polylines) if part)
     dir_sign = 1 if side == "left" else -1
     total_len = res_h * 0.28
     clamp_min, clamp_max = round(res_w * 0.08), round(res_w * 0.92)
@@ -268,13 +350,15 @@ def render_ass(renderer, layer, events, width, height, ass_layer=2):
     intensity = clamp(settings.get("intensity", 80), 0, 100)
     # ASS alpha: 0 is opaque and 255 is transparent.
     base_alpha = round((1.0 - intensity / 100.0) * 255)
+    natural_branches = clamp(int(settings.get("naturalBranches", 4) or 4), 1, 6)
+    natural_spread = clamp(float(settings.get("naturalSpread", 1.0) or 1.0), 0.5, 2.0)
     lines = []
     for index, event in enumerate(events):
         t = float(event["t"])
         tier = int(event.get("tier", 1))
         tier_cfg = LIGHTNING_TIERS.get(tier, LIGHTNING_TIERS[1])
         band = event.get("freq_band", "mid")
-        style_cfg = LIGHTNING_STYLES.get(band, LIGHTNING_STYLES["mid"])
+        style_cfg = NATURAL_STYLE if tier >= 4 else LIGHTNING_STYLES.get(band, LIGHTNING_STYLES["mid"])
         if settings.get("colorMode", "frequency") == "custom":
             color = str(settings.get("color", "#FFF700"))
             glow_color = color
@@ -298,6 +382,7 @@ def render_ass(renderer, layer, events, width, height, ass_layer=2):
             start_x, start_y, side, seed, height, width,
             thickness, tier_cfg["segments"], tier_cfg["wig"], tier_cfg["branch"],
             style_cfg["style"], style_cfg["branch_prob"],
+            natural_branches=natural_branches, natural_spread=natural_spread,
         )
         start_str = renderer._format_ass_time(t)
         end_str = renderer._format_ass_time(t + flash_duration)
@@ -319,6 +404,7 @@ def render_ass(renderer, layer, events, width, height, ass_layer=2):
                 start_x, start_y, side, seed, height, width,
                 thickness * 0.35, tier_cfg["segments"], tier_cfg["wig"], False,
                 style_cfg["style"], style_cfg["branch_prob"],
+                natural_branches=natural_branches, natural_spread=natural_spread,
             )
             lines.append(f"Dialogue: {layer_number},{start_str},{end_str},Watermark,,0,0,0,,{{\\an7\\pos(0,0)\\1c{white}\\bord0\\shad0\\fad(0,{fade_ms})}}{{\\p1}}{thin_path}{{\\p0}}")
     return lines

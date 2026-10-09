@@ -36,6 +36,7 @@ export class EffectLayerHost {
 
     async initialize() {
         if (this.addButton) this.addButton.addEventListener('click', () => this.addLayer(this.selector?.value));
+        this._bindHotkeys();
         try {
             const response = await fetch('/api/effects', { headers: { Accept: 'application/json' } });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -211,6 +212,44 @@ export class EffectLayerHost {
         this.layers = ordered;
         this.render();
         this.onChange();
+    }
+
+    /** Map of hotkey (e.g. "1") -> { type, triggerId }, declared by each plugin's manual_triggers. */
+    hotkeyMap() {
+        const map = new Map();
+        for (const spec of this.specs.values()) {
+            for (const trigger of spec.manual_triggers || []) {
+                const key = trigger?.hotkey === undefined ? '' : String(trigger.hotkey);
+                if (key && !map.has(key)) map.set(key, { type: spec.id, triggerId: trigger.id, label: trigger.label || spec.name });
+            }
+        }
+        return map;
+    }
+
+    /** Fire a hotkey on the first enabled layer of that type; create one (manual mode) if missing. */
+    triggerHotkey({ type, triggerId }) {
+        let layer = [...this.layers].sort((a, b) => a.order - b.order).find(item => item.type === type && item.enabled);
+        if (!layer) {
+            layer = this.addLayer(type);
+            if (!layer) return null;
+            layer.settings = { ...layer.settings, mode: 'manual' };
+        }
+        this.triggerManual(layer.id, triggerId);
+        return layer;
+    }
+
+    _bindHotkeys() {
+        if (this._hotkeysBound || typeof window === 'undefined') return;
+        this._hotkeysBound = true;
+        window.addEventListener('keydown', (event) => {
+            if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+            const target = event.target;
+            if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+            const binding = this.hotkeyMap().get(event.key);
+            if (!binding) return;
+            event.preventDefault();
+            this.triggerHotkey(binding);
+        });
     }
 
     triggerManual(layerId, triggerId) {
@@ -490,7 +529,8 @@ export class EffectLayerHost {
             label.textContent = `${spec.icon || '✨'} ${layer.name || spec.name}`;
             group.appendChild(label);
             for (const trigger of spec.manual_triggers) {
-                const button = this._smallButton(trigger.label || 'اجرا', `تریگر دستی ${trigger.label || spec.name}`, () => this.triggerManual(layer.id, trigger.id), 'effect-trigger-button');
+                const text = trigger.hotkey ? `[${trigger.hotkey}] ${trigger.label || 'اجرا'}` : (trigger.label || 'اجرا');
+                const button = this._smallButton(text, `تریگر دستی ${trigger.label || spec.name}${trigger.hotkey ? ` (کلید ${trigger.hotkey})` : ''}`, () => this.triggerManual(layer.id, trigger.id), 'effect-trigger-button');
                 group.appendChild(button);
             }
             this.quickActions.appendChild(group);

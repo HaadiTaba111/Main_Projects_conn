@@ -3,7 +3,13 @@ import { clamp, deterministicRandom, detectBeat, getBandEnergies, normalizeSeed,
 const TIERS = {
     1: { thickness: 4, segments: 6, wig: 12, duration: 0.35, glow: 25, branch: false },
     2: { thickness: 7, segments: 8, wig: 16, duration: 0.42, glow: 34, branch: false },
-    3: { thickness: 11, segments: 11, wig: 22, duration: 0.55, glow: 46, branch: true }
+    3: { thickness: 11, segments: 11, wig: 22, duration: 0.55, glow: 46, branch: true },
+    // Tier 4: رعد طبیعی (الگوی storm). هم‌راستا با backend/effects/lightning.py
+    4: { thickness: 5, segments: 10, wig: 20, duration: 0.6, glow: 30, branch: true }
+};
+
+const NATURAL_STYLE = {
+    color: '#F2F7FF', glow: '#9EC5FF', thickness: 1, duration: 1, style: 'natural', branchProb: 0.4
 };
 
 const FREQUENCY_STYLES = {
@@ -11,6 +17,47 @@ const FREQUENCY_STYLES = {
     mid: { color: '#FFF700', glow: '#FFFF66', thickness: 1.0, duration: 1.0, style: 'zigzag', branchProb: 0.2 },
     treble: { color: '#00BFFF', glow: '#87CEEB', thickness: 0.6, duration: 0.7, style: 'forked', branchProb: 0.6 }
 };
+
+function clampValue(value, lower, upper) {
+    return Math.max(lower, Math.min(upper, value));
+}
+
+/**
+ * Recursive midpoint displacement from the storm reference. Child bolts are pushed
+ * to branchOut; the main polyline is returned. Mirrors _storm_polyline in Python.
+ */
+export function stormPolyline(p1, p2, displace, branches, seed, lower, upper, branchOut) {
+    if (displace < 2) return [p1, p2];
+    const midX = clampValue((p1.x + p2.x) / 2 + (deterministicRandom(seed, 1, 0, 1) - 0.5) * displace, lower, upper);
+    const midY = (p1.y + p2.y) / 2 + (deterministicRandom(seed, 2, 0, 1) - 0.5) * displace;
+    const mid = { x: midX, y: midY };
+    const left = stormPolyline(p1, mid, displace / 2, branches - 1, (seed * 2 + 1) & 0x7fffffff, lower, upper, branchOut);
+    const right = stormPolyline(mid, p2, displace / 2, branches - 1, (seed * 2 + 2) & 0x7fffffff, lower, upper, branchOut);
+    if (branches > 0 && deterministicRandom(seed, 3, 0, 1) < 0.4) {
+        const angle = deterministicRandom(seed, 4, 0, Math.PI * 2);
+        const length = Math.hypot(p2.x - p1.x, p2.y - p1.y) * 0.4;
+        const tip = { x: clampValue(mid.x + Math.cos(angle) * length, lower, upper), y: mid.y + Math.sin(angle) * length };
+        branchOut.push(stormPolyline(mid, tip, displace / 2, branches - 2, (seed * 3 + 3) & 0x7fffffff, lower, upper, branchOut));
+    }
+    return left.slice(0, -1).concat(right);
+}
+
+/** Natural storm bolt: [{ points, scale }] with the trunk first and thinner branches after. */
+export function naturalBoltPaths(width, height, side, seed, settings = {}) {
+    const dir = side === 'left' ? 1 : -1;
+    const minX = Math.round(width * 0.08);
+    const maxX = Math.round(width * 0.92);
+    const startX = side === 'left' ? minX : width - minX;
+    const startY = Math.round(height * 0.02);
+    const endX = clampValue(startX + dir * width * (0.06 + 0.4 * deterministicRandom(seed, 60, 0, 1)), minX, maxX);
+    const endY = startY + height * (0.30 + 0.35 * deterministicRandom(seed, 61, 0, 1));
+    const branches = Math.trunc(clampValue(Number(settings.naturalBranches) || 4, 1, 6));
+    const spread = clampValue(Number(settings.naturalSpread) || 1, 0.5, 2);
+    const branchOut = [];
+    const main = stormPolyline({ x: startX, y: startY }, { x: endX, y: endY }, height * 0.16 * spread,
+        branches, seed & 0x7fffffff, minX, maxX, branchOut);
+    return [{ points: main, scale: 1 }, ...branchOut.map(points => ({ points, scale: 0.6 }))];
+}
 
 function normalizedTier(value) {
     const tier = Math.trunc(Number(value) || 1);
@@ -144,7 +191,7 @@ function strokePoints(ctx, points, width, color, alpha, glow, shadowBlur = 22) {
 function drawEvent(ctx, event, timeSeconds, layer, width, height, eventIndex) {
     const tier = normalizedTier(event.tier);
     const cfg = TIERS[tier];
-    const bandStyle = FREQUENCY_STYLES[event.freq_band] || FREQUENCY_STYLES.mid;
+    const bandStyle = Number(event.tier) >= 4 ? NATURAL_STYLE : (FREQUENCY_STYLES[event.freq_band] || FREQUENCY_STYLES.mid);
     const settings = layer.settings || {};
     const customColor = settings.colorMode === 'custom';
     const color = customColor ? (settings.color || '#FFF700') : bandStyle.color;
@@ -163,6 +210,16 @@ function drawEvent(ctx, event, timeSeconds, layer, width, height, eventIndex) {
     const thickness = cfg.thickness * bandStyle.thickness * (0.75 + 0.25 * energy);
     const seed = normalizeSeed(event.seed, seedForTime(event.t, tier));
     const side = event.side || (eventIndex % 2 === 0 ? 'left' : 'right');
+    if (bandStyle.style === 'natural') {
+        const natural = naturalBoltPaths(width, height, side, seed, settings);
+        for (const { points, scale } of natural) strokePoints(ctx, points, thickness * 2.5 * scale, glow, alpha * 0.28, glow, 12);
+        for (const { points, scale } of natural) strokePoints(ctx, points, thickness * 1.5 * scale, glow, alpha * 0.55, glow, 5);
+        for (const { points, scale } of natural) strokePoints(ctx, points, thickness * scale, color, alpha, glow, 2);
+        if (tier >= 2) {
+            for (const { points, scale } of natural) strokePoints(ctx, points, Math.max(1.4, thickness * 0.24 * scale), '#FFFFFF', alpha * 0.82, '#FFFFFF', 0);
+        }
+        return;
+    }
     const points = makeBoltPoints(width, height, side, seed, tier, bandStyle.style);
     const paths = [points];
     const totalLength = height * 0.28;

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لیراکس — رعد و برق و آتش‌بازی (۵ کلید، پارامتریک)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #050510; color: #e0e0e0; font-family: Tahoma, Arial, sans-serif; overflow: hidden; height: 100vh; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #panel {
+    position: absolute; top: 12px; left: 12px; width: 268px; max-height: calc(100vh - 24px); overflow: auto;
+    background: rgba(8, 8, 20, 0.78); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+    padding: 12px 14px; font-size: 13px; line-height: 1.7; backdrop-filter: blur(6px); z-index: 10;
+  }
+  #panel h3 { font-size: 14px; margin: 8px 0 4px; color: #ffd76a; }
+  #panel label { display: block; margin-top: 6px; }
+  #panel label span { color: #9fb0c8; }
+  #panel input[type=range] { width: 100%; }
+  #panel select, #panel input[type=color] { background: #1d2030; color: #fff; border: 1px solid #3a3f55; border-radius: 4px; padding: 2px 4px; }
+  .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .key { background: #15182a; border: 1px solid #2b3050; border-radius: 8px; padding: 6px; cursor: pointer; text-align: center; user-select: none; }
+  .key:hover, .key.flash { border-color: #ffd76a; box-shadow: 0 0 10px rgba(255,215,106,0.35); }
+  .key b { display: inline-block; min-width: 20px; color: #ffd76a; }
+  #hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #78909c; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <h3>کلیدهای ۱ تا ۵</h3>
+  <div class="keys">
+    <div class="key" data-key="1"><b>1</b> ⚡ معمولی</div>
+    <div class="key" data-key="2"><b>2</b> ⚡ کلفت‌تر</div>
+    <div class="key" data-key="3"><b>3</b> 🌩️ قوی و شاخه‌دار</div>
+    <div class="key" data-key="4"><b>4</b> 🌌 رعد طبیعی</div>
+    <div class="key" data-key="5" style="grid-column: span 2;"><b>5</b> 🎆 آتش‌بازی</div>
+  </div>
+
+  <h3>رعد (کلید ۱–۳)</h3>
+  <label>سبک فرکانس: <select id="bandStyle">
+    <option value="realistic">bass — واقع‌گرایانه (نارنجی)</option>
+    <option value="zigzag" selected>mid — زیگzag (زرد)</option>
+    <option value="forked">treble — دوشاخه (آبی)</option>
+  </select></label>
+  <label><input type="checkbox" id="customColor"> استفاده از رنگ دلخواه</label>
+  <label>رنگ دلخواه رعد: <input type="color" id="boltColor" value="#fff700"></label>
+  <label><span id="lblThick">ضخامت</span><input type="range" id="thickness" min="0.5" max="2" step="0.05" value="1"></label>
+
+  <h3>رعد طبیعی (کلید ۴)</h3>
+  <label><span id="lblBranch">شاخه‌ها</span><input type="range" id="naturalBranches" min="1" max="6" step="1" value="4"></label>
+  <label><span id="lblSpread">گستردگی</span><input type="range" id="naturalSpread" min="0.5" max="2" step="0.05" value="1"></label>
+
+  <h3>آتش‌بازی (کلید ۵)</h3>
+  <label><span id="lblParticles">ذرات هر انفجار</span><input type="range" id="particles" min="12" max="72" step="4" value="36"></label>
+  <label><span id="lblFwDur">مدت محوشدن</span><input type="range" id="fwDuration" min="0.5" max="2.5" step="0.1" value="1.25"></label>
+  <label>پالت: <select id="palette">
+    <option value="festival" selected>جشن رنگی</option>
+    <option value="warm">گرم / طلایی</option>
+    <option value="cool">سرد / یخی</option>
+  </select></label>
+
+  <h3>عمومی</h3>
+  <label><span id="lblIntensity">شدت نور</span><input type="range" id="intensity" min="20" max="100" step="5" value="80"></label>
+  <label><span id="lblDur">ضریب مدت رعد</span><input type="range" id="durMul" min="0.5" max="2" step="0.05" value="1"></label>
+  <label><span id="lblAuto">رعد خودکار (ثانیه؛ ۰ = خاموش)</span><input type="range" id="autoSec" min="0" max="15" step="0.5" value="0"></label>
+  <label><input type="checkbox" id="rain" checked> باران</label>
+</div>
+
+<canvas id="stage"></canvas>
+<div id="hint">کلیدهای ۱ تا ۵ را بزن | کلیک روی صفحه = رعد طبیعی | Space = آتش‌بازی</div>
+
+<script>
+// ===================== پارامترها (همان مقادیر TIERS/FREQUENCY_STYLES لیراکس) =====================
+const TIERS = {
+  1: { thickness: 4, segments: 6, wig: 12, duration: 0.35, glow: 25, branch: false },
+  2: { thickness: 7, segments: 8, wig: 16, duration: 0.42, glow: 34, branch: false },
+  3: { thickness: 11, segments: 11, wig: 22, duration: 0.55, glow: 46, branch: true },
+  4: { thickness: 5, segments: 10, wig: 20, duration: 0.6, glow: 30, branch: true }
+};
+const BANDS = {
+  realistic: { color: '#FF4500', glow: '#FF6347', thickness: 1.4, duration: 1.3, branchProb: 0.35 },
+  zigzag:    { color: '#FFF700', glow: '#FFFF66', thickness: 1.0, duration: 1.0, branchProb: 0.2 },
+  forked:    { color: '#00BFFF', glow: '#87CEEB', thickness: 0.6, duration: 0.7, branchProb: 0.6 }
+};
+const NATURAL = { color: '#F2F7FF', glow: '#9EC5FF' };
+const PALETTES = {
+  festival: ['#FF3B30', '#FFD60A', '#30D158', '#64D2FF', '#BF5AF2', '#FF9F0A'],
+  warm: ['#FF3B30', '#FF9F0A', '#FFD60A', '#FF6B35', '#FFE8A3'],
+  cool: ['#64D2FF', '#5E5CE6', '#BF5AF2', '#A7F3FF', '#FFFFFF']
+};
+
+const $ = (id) => document.getElementById(id);
+const P = () => ({
+  band: $('bandStyle').value, color: $('boltColor').value, custom: $('customColor').checked, thick: +$('thickness').value,
+  branches: +$('naturalBranches').value, spread: +$('naturalSpread').value,
+  particles: +$('particles').value, fwDur: +$('fwDuration').value, palette: $('palette').value,
+  intensity: +$('intensity').value, durMul: +$('durMul').value, autoSec: +$('autoSec').value,
+  rain: $('rain').checked
+});
+
+// ===================== بوم =====================
+const canvas = $('stage');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+addEventListener('resize', resize); resize();
+
+// ===================== helpers (هم‌نام با نسخهٔ لیراکس) =====================
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rnd = (lo = 0, hi = 1) => lo + Math.random() * (hi - lo);
+
+function midpointDisplacement(p1, p2, disp, rough, depth, minX, maxX) {
+  if (depth <= 0) return [p1];
+  const mx = clamp((p1.x + p2.x) / 2 + (rnd() - 0.5) * disp, minX, maxX);
+  const my = (p1.y + p2.y) / 2 + (rnd() - 0.5) * disp;
+  const m = { x: mx, y: my };
+  return midpointDisplacement(p1, m, disp * rough, rough, depth - 1, minX, maxX)
+    .slice(0, -1).concat(midpointDisplacement(m, p2, disp * rough, rough, depth - 1, minX, maxX));
+}
+
+// الگوی storm (بازگشتی): تنه + شاخه‌ها، با احتمال 0.4 و زاویهٔ تصادفی
+function stormPolyline(p1, p2, displace, branches, minX, maxX, branchOut) {
+  if (displace < 2) return [p1, p2];
+  const mid = {
+    x: clamp((p1.x + p2.x) / 2 + (rnd() - 0.5) * displace, minX, maxX),
+    y: (p1.y + p2.y) / 2 + (rnd() - 0.5) * displace
+  };
+  const left = stormPolyline(p1, mid, displace / 2, branches - 1, minX, maxX, branchOut);
+  const right = stormPolyline(mid, p2, displace / 2, branches - 1, minX, maxX, branchOut);
+  if (branches > 0 && Math.random() < 0.4) {
+    const angle = rnd(0, Math.PI * 2);
+    const len = Math.hypot(p2.x - p1.x, p2.y - p1.y) * 0.4;
+    const tip = { x: clamp(mid.x + Math.cos(angle) * len, minX, maxX), y: mid.y + Math.sin(angle) * len };
+    branchOut.push(stormPolyline(mid, tip, displace / 2, branches - 2, minX, maxX, branchOut));
+  }
+  return left.slice(0, -1).concat(right);
+}
+
+function boltPoints(side, tier, style, seed) {
+  const cfg = TIERS[tier];
+  const dir = side === 'left' ? 1 : -1;
+  const minX = Math.round(canvas.width * 0.08), maxX = Math.round(canvas.width * 0.92);
+  const start = { x: side === 'left' ? minX : maxX, y: Math.round(canvas.height * 0.02) };
+  const total = canvas.height * 0.28;
+  const end = { x: clamp(start.x + dir * total * 0.35, minX, maxX), y: start.y + total };
+  if (style === 'realistic') {
+    return midpointDisplacement(start, end, cfg.wig * 1.5, 0.55, Math.floor(cfg.segments / 2) + 2, minX, maxX).concat([end]);
+  }
+  if (style === 'forked') {
+    return [start, { x: clamp(start.x + dir * total * 0.17, minX, maxX), y: start.y + total * 0.5 }, end];
+  }
+  const pts = [start]; let x = start.x, y = start.y; const step = total / cfg.segments;
+  for (let i = 0; i < cfg.segments; i++) {
+    x = clamp(x + dir * step * 0.35 + rnd(-cfg.wig, cfg.wig), minX, maxX);
+    y += step; pts.push({ x, y });
+  }
+  return pts;
+}
+
+function stroke(points, width, color, alpha, glow, blur) {
+  if (points.length < 2) return;
+  ctx.save();
+  ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.shadowColor = glow; ctx.shadowBlur = blur;
+  ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+  for (const p of points.slice(1)) ctx.lineTo(p.x, p.y);
+  ctx.stroke(); ctx.restore();
+}
+
+function strokeBolt(paths, width, color, glow, alpha, tier) {
+  for (const { pts, s } of paths) stroke(pts, width * 2.5 * s, glow, alpha * 0.28, glow, 12);
+  for (const { pts, s } of paths) stroke(pts, width * 1.5 * s, glow, alpha * 0.55, glow, 5);
+  for (const { pts, s } of paths) stroke(pts, width * s, color, alpha, glow, 2);
+  if (tier >= 2) for (const { pts, s } of paths) stroke(pts, Math.max(1.4, width * 0.24 * s), '#FFFFFF', alpha * 0.82, '#FFFFFF', 0);
+}
+
+// ===================== افکت‌ها =====================
+const active = [];
+const bandKeys = ['realistic', 'zigzag', 'forked'];
+
+function spawnBolt(tier) {
+  const p = P();
+  const band = BANDS[p.band] || BANDS.zigzag;
+  const side = Math.random() < 0.5 ? 'left' : 'right';
+  const cfg = TIERS[tier];
+  const seed = Math.floor(Math.random() * 1e9);
+  active.push({
+    kind: 'bolt', t0: performance.now() / 1000, dur: cfg.duration * band.duration * p.durMul,
+    tier, side, seed, p: { ...p, band: p.band in BANDS ? p.band : 'zigzag' }
+  });
+}
+
+function spawnNatural() {
+  const p = P();
+  active.push({ kind: 'natural', t0: performance.now() / 1000, dur: TIERS[4].duration * p.durMul, side: Math.random() < 0.5 ? 'left' : 'right', seed: Math.floor(Math.random() * 1e9), p });
+}
+
+function spawnFireworks() {
+  const p = P();
+  const seed = Math.floor(Math.random() * 1e9);
+  // t0 = لحظهٔ انفجار؛ موشک 0.42 ثانیه قبل از آن دیده می‌شود
+  active.push({ kind: 'fw', t0: performance.now() / 1000 + 0.42, dur: p.fwDur, seed, p });
+}
+
+function drawBolt(e, t) {
+  const age = t - e.t0;
+  if (age < 0 || age > e.dur) return;
+  const prog = age / e.dur;
+  const alpha = (e.p.intensity / 100) * (1 - prog);
+  const band = BANDS[e.p.band];
+  const color = e.p.custom ? e.p.color : band.color;
+  const glow = e.p.custom ? e.p.color : band.glow;
+  const pts = boltPoints(e.side, e.tier, e.p.band, e.seed);
+  const paths = [{ pts, s: 1 }];
+  if (band && (TIERS[e.tier].branch || Math.random() < band.branchProb)) {
+    const mid = pts[Math.floor(pts.length / 2)];
+    const end = { x: clamp(mid.x + rnd(-80, 80), 0, canvas.width), y: mid.y + canvas.height * 0.1 };
+    paths.push({ pts: midpointDisplacement(mid, end, 20, 0.5, 3, 0, canvas.width).concat([end]), s: 0.7 });
+  }
+  strokeBolt(paths, TIERS[e.tier].thickness * band.thickness * e.p.thick, color, glow, alpha, e.tier);
+}
+
+function drawNatural(e, t) {
+  const age = t - e.t0;
+  if (age < 0 || age > e.dur) return;
+  const alpha = (e.p.intensity / 100) * (1 - age / e.dur);
+  const W = canvas.width, H = canvas.height;
+  const minX = Math.round(W * 0.08), maxX = Math.round(W * 0.92);
+  const sx = e.side === 'left' ? minX : maxX, sy = Math.round(H * 0.02), dir = e.side === 'left' ? 1 : -1;
+  const end = { x: clamp(sx + dir * W * (0.06 + 0.4 * rnd()), minX, maxX), y: sy + H * (0.30 + 0.35 * rnd()) };
+  const branchOut = [];
+  const main = stormPolyline({ x: sx, y: sy }, end, H * 0.16 * e.p.spread, e.p.branches, minX, maxX, branchOut);
+  const paths = [{ pts: main, s: 1 }, ...branchOut.map(pts => ({ pts, s: 0.6 }))];
+  strokeBolt(paths, TIERS[4].thickness * e.p.thick, NATURAL.color, NATURAL.glow, alpha, 4);
+}
+
+function drawFireworks(e, t) {
+  const age = t - e.t0;
+  const p = e.p;
+  const palette = PALETTES[p.palette] || PALETTES.festival;
+  const cx = canvas.width * (0.18 + 0.64 * ((e.seed % 997) / 997));
+  const cy = canvas.height * (0.15 + 0.38 * ((e.seed % 577) / 577));
+  // موشک: 0.42 ثانیه قبل از انفجار از پایین بالا می‌رود
+  if (age < 0 && age >= -0.42) {
+    const k = (age + 0.42) / 0.42;
+    ctx.save(); ctx.globalAlpha = (p.intensity / 100) * (k < 0.7 ? 1 : (1 - k) / 0.3);
+    ctx.strokeStyle = '#FFFFFF'; ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = 10; ctx.lineWidth = 3;
+    const y = canvas.height + 24 + (cy - canvas.height - 24) * k;
+    ctx.beginPath(); ctx.moveTo(cx, y + 26); ctx.lineTo(cx, y); ctx.stroke(); ctx.restore();
+  }
+  if (age < 0 || age > p.fwDur) return;
+  const prog = age / p.fwDur, alpha = (p.intensity / 100) * (1 - prog);
+  const n = p.particles;
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    const ang = (2 * Math.PI * i) / n + (((e.seed + i * 13) % 90) / 90 - 0.5) * 0.9;
+    const sp = canvas.height * (0.09 + 0.12 * (((e.seed + 100 + i * 7) % 100) / 100));
+    const x = cx + Math.cos(ang) * sp * prog, y = cy + Math.sin(ang) * sp * prog;
+    const tx = -Math.cos(ang) * sp * 0.08, ty = -Math.sin(ang) * sp * 0.08;
+    const col = palette[(i + (e.seed % palette.length)) % palette.length];
+    ctx.globalAlpha = alpha; ctx.fillStyle = col; ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 4;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x + tx, y + ty); ctx.lineTo(x, y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+  // فلاش کوتاه در لحظهٔ انفجار
+  if (prog < 0.12) { ctx.fillStyle = `rgba(255,255,255,${0.12 * (1 - prog / 0.12) * (p.intensity / 100)})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+}
+
+// ===================== باران، حلقه و کلیدها =====================
+const drops = Array.from({ length: 110 }, () => ({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, len: rnd(10, 30), sp: rnd(10, 25) }));
+function drawRain() {
+  ctx.strokeStyle = 'rgba(174,194,224,0.3)'; ctx.lineWidth = 1;
+  for (const d of drops) {
+    ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x, d.y + d.len); ctx.stroke();
+    d.y += d.sp; if (d.y > canvas.height) { d.y = -d.len; d.x = Math.random() * canvas.width; }
+  }
+}
+
+let lastAuto = 0;
+function frame(ts) {
+  const t = ts / 1000, p = P();
+  ctx.fillStyle = 'rgba(5,5,16,0.28)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (p.rain) drawRain();
+  if (p.autoSec > 0 && t - lastAuto > p.autoSec) { spawnNatural(); lastAuto = t; }
+  for (let i = active.length - 1; i >= 0; i--) {
+    const e = active[i];
+    const now = performance.now() / 1000;
+    if (now - e.t0 > e.dur + 0.5 && e.kind !== 'fw') { active.splice(i, 1); continue; }
+    if (e.kind === 'bolt') drawBolt(e, now);
+    else if (e.kind === 'natural') drawNatural(e, now);
+    else drawFireworks(e, now);
+    if (e.kind === 'fw' && now - e.t0 > e.p.fwDur + 0.5) active.splice(i, 1);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function trigger(key) {
+  if (key === '1') spawnBolt(1);
+  else if (key === '2') spawnBolt(2);
+  else if (key === '3') spawnBolt(3);
+  else if (key === '4') spawnNatural();
+  else if (key === '5') spawnFireworks();
+  const el = document.querySelector(`.key[data-key="${key}"]`);
+  if (el) { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 180); }
+}
+
+addEventListener('keydown', (e) => {
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName) && e.key !== 'Escape') return;
+  if (['1', '2', '3', '4', '5'].includes(e.key)) { e.preventDefault(); trigger(e.key); }
+  else if (e.code === 'Space') { e.preventDefault(); spawnFireworks(); }
+});
+document.querySelectorAll('.key').forEach(el => el.addEventListener('click', () => trigger(el.dataset.key)));
+$('panel').addEventListener('click', e => e.stopPropagation());
+canvas.addEventListener('click', () => spawnNatural());
+
+// برچسب زندهٔ پارامترها
+function refreshLabels() {
+  $('lblThick').textContent = `ضخامت: ${(+$('thickness').value).toFixed(2)}×`;
+  $('lblBranch').textContent = `شاخه‌ها: ${$('naturalBranches').value}`;
+  $('lblSpread').textContent = `گستردگی: ${(+$('naturalSpread').value).toFixed(2)}×`;
+  $('lblParticles').textContent = `ذرات هر انفجار: ${$('particles').value}`;
+  $('lblFwDur').textContent = `مدت محوشدن: ${(+$('fwDuration').value).toFixed(1)} ثانیه`;
+  $('lblIntensity').textContent = `شدت نور: ${$('intensity').value}%`;
+  $('lblDur').textContent = `ضریب مدت رعد: ${(+$('durMul').value).toFixed(2)}×`;
+  $('lblAuto').textContent = +$('autoSec').value ? `رعد خودکار هر ${$('autoSec').value} ثانیه` : 'رعد خودکار: خاموش';
+}
+document.querySelectorAll('#panel input, #panel select').forEach(el => el.addEventListener('input', refreshLabels));
+refreshLabels();
+</script>
+</body>
+</html>
