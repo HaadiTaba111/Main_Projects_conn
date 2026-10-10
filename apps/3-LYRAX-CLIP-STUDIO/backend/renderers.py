@@ -679,7 +679,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # این فقط یک stream specifier خام است و نباید داخل براکت گذاشته شود.
         video_map_ref = f"[{last_video_pad}]" if filter_graph_str and last_video_pad != "0:v" else "0:v"
         cmd.extend(["-map", video_map_ref] + final_audio_opt)
-        cmd.extend(["-c:v", "libx264", "-preset", "fast", "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-t", str(duration), self.output_path])
+        cmd.extend(["-c:v", "libx264", "-preset", "slow", "-crf", "16", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "320k", "-t", str(duration), self.output_path])
 
         self.progress_callback(15, "آغاز پردازش رندر و ترکیب مدیا...")
         # stdout is unused by ffmpeg here; DEVNULL avoids a full pipe blocking the encoder.

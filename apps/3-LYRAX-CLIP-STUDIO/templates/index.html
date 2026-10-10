@@ -3110,7 +3110,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 ];
                 let mime = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m)) || '';
 
-                mediaRecorder = mime ? new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: 4000000 }) : new MediaRecorder(combinedStream);
+                mediaRecorder = mime ? new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: 16000000, audioBitsPerSecond: 320000 }) : new MediaRecorder(combinedStream, { videoBitsPerSecond: 16000000, audioBitsPerSecond: 320000 });
                 recordedVideoChunks = [];
                 mediaRecorder.ondataavailable = e => { if(e.data && e.data.size > 0) recordedVideoChunks.push(e.data); };
                 mediaRecorder.onerror = (e) => { console.log("Recorder error:", e); showToast("⚠️ خطا در حین ضبط ویدیو!"); };
@@ -3544,7 +3544,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 ];
                 let mime = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m)) || '';
 
-                mediaRecorder = mime ? new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: 6000000 }) : new MediaRecorder(combinedStream);
+                mediaRecorder = mime ? new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: 16000000, audioBitsPerSecond: 320000 }) : new MediaRecorder(combinedStream, { videoBitsPerSecond: 16000000, audioBitsPerSecond: 320000 });
                 recordedVideoChunks = [];
                 mediaRecorder.ondataavailable = e => { if(e.data && e.data.size > 0) recordedVideoChunks.push(e.data); };
                 mediaRecorder.onstop = () => {

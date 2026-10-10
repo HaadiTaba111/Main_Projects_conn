@@ -76,8 +76,8 @@ class CubePreviewWiringTests(unittest.TestCase):
                 self.assertIn('value="cube_3d_bottom_up"', content)
                 self.assertIn('value="word_reveal"', content)
                 self.assertIn("function triggerCubeTurn(", content)
-                # آتش‌بازی جای رعدوبرق: لایه‌ی آماده‌ی شلیک دستی تا دکمه‌های 🎆 زیر کلیپ بیایند
-                self.assertIn("host.addLayer('fireworks')", content)
+                # آتش‌بازی حذف شده است: دیگر لایه‌ی خودکار فایرورکس اضافه نمی‌شود
+                self.assertNotIn("host.addLayer('fireworks')", content)
                 self.assertIn("stepNext(true)", content)
                 self.assertIn("/static/cube-studio/index.html", content)  # لینک استودیوی مستقل مکعب
                 # پنل داکی‌شده‌ی قبلی نباید برگردد (کلیپ باید همیشه دیده شود)
