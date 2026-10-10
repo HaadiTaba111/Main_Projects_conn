@@ -388,11 +388,17 @@ export class ScalpLabApp {
   async start() {
     this.view.bind();
     this.view.renderSettings();
-    this.view.renderAll();
+    try {
+      this.view.renderAll();
+    } catch (error) {
+      // خطای رندر نباید راه‌اندازی را متوقف کند (قبلاً همین باعث می‌شد حلقهٔ اسکن هرگز شروع نشود)
+      this.logger.info('START RENDER ERROR', { error: error?.message || String(error) });
+    }
     this.hotBridge.start();
     this.logger.info('APP START', { mode: this.modeLabel(), paperDefault: this.settings.value.paperAutoDefault, bridge: this.hotBridge.enabled() ? 'ON' : 'OFF' });
-    await this.scan().catch(error => this.logger.info('INITIAL SCAN ERROR', { error: error?.message || String(error) }));
+    // حلقهٔ خودکار قبل از اولین اسکن زمان‌بندی می‌شود تا هیچ خطایی آن را نخواباند
     this.schedule();
+    await this.scan().catch(error => this.logger.info('INITIAL SCAN ERROR', { error: error?.message || String(error) }));
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 }

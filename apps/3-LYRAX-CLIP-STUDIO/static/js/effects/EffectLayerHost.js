@@ -226,13 +226,19 @@ export class EffectLayerHost {
         return map;
     }
 
-    /** Fire a hotkey on the first enabled layer of that type; create one (manual mode) if missing. */
+    /**
+     * Fire a hotkey on the first layer of that type. If that layer was switched off, it is switched back on
+     * (instead of silently adding a duplicate layer); a new manual layer is created only when none exists.
+     */
     triggerHotkey({ type, triggerId }) {
-        let layer = [...this.layers].sort((a, b) => a.order - b.order).find(item => item.type === type && item.enabled);
+        let layer = [...this.layers].sort((a, b) => a.order - b.order).find(item => item.type === type);
         if (!layer) {
             layer = this.addLayer(type);
             if (!layer) return null;
             layer.settings = { ...layer.settings, mode: 'manual' };
+        } else if (!layer.enabled) {
+            layer.enabled = true;
+            this.render();
         }
         this.triggerManual(layer.id, triggerId);
         return layer;
@@ -519,7 +525,12 @@ export class EffectLayerHost {
     _renderQuickActions() {
         if (!this.quickActions) return;
         this.quickActions.replaceChildren();
-        const layers = [...this.layers].sort((a, b) => a.order - b.order).filter(layer => layer.enabled);
+        const sorted = [...this.layers].sort((a, b) => a.order - b.order);
+        const layers = sorted.filter(layer => layer.enabled);
+        // لایهٔ خاموش تریگرهایش را پنهان می‌کند؛ برای اینکه «گم شدن» دکمه‌ها بی‌دلیل به نظر نرسد، یادآوری نشان داده می‌شود
+        const hiddenNames = sorted
+            .filter(layer => !layer.enabled && this.specs.get(layer.type)?.manual_triggers?.length)
+            .map(layer => layer.name || this.specs.get(layer.type)?.name || layer.type);
         for (const layer of layers) {
             const spec = this.specs.get(layer.type);
             if (!spec?.manual_triggers?.length) continue;
@@ -540,6 +551,12 @@ export class EffectLayerHost {
             hint.className = 'effect-quick-hint';
             hint.textContent = 'با افزودن لایه‌ی افکت، تریگرهای دستی اینجا ظاهر می‌شوند.';
             this.quickActions.appendChild(hint);
+        }
+        if (hiddenNames.length) {
+            const note = document.createElement('span');
+            note.className = 'effect-quick-hint';
+            note.textContent = `تریگرهای ${hiddenNames.join('، ')} پنهان‌اند چون لایه‌شان غیرفعال است. «فعال» را روشن کن یا کلیدش را بزن.`;
+            this.quickActions.appendChild(note);
         }
     }
 }

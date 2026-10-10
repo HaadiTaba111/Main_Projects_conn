@@ -577,7 +577,8 @@ export class DashboardView {
         $('.trade-plan', node).textContent = 'No data / no order';
         dataState.textContent = `DATA ERROR: ${this.app.dataErrors.get(symbol) || 'در انتظار دیتا'}`;
         dataState.className = 'data-state error';
-        button.disabled = true;
+        // قالب کارت دکمهٔ .paperNow ندارد؛ نبودنش نباید کل رندر را بشکند
+        if (button) button.disabled = true;
         grid.appendChild(node);
         continue;
       }
