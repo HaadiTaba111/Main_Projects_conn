@@ -3959,7 +3959,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             }
 
             // تمام لایه‌های افکت به‌ترتیب خودشان روی زیرنویس و زیر واترمارک کامپوزیت می‌شوند.
-            if (effectLayerHost) effectLayerHost.renderFrame(offCtx, cur, { width: W_FULL, height: H_FULL, duration: getWatermarkEffectiveTotalDuration() });
+            // پیش‌نمایش زنده روی بوم ۲۷۰×۴۸۰ نشان داده می‌شود (= ۲۵٪ وضوح ۱۰۸۰×۱۹۲۰)؛ رسم لایه‌ها در وضوح کامل هدررفت CPU است.
+            // ضبط واقعی همچنان با وضوح کامل (backingScale=1) رسم می‌شود تا خروجی تغییری نکند.
+            if (effectLayerHost) effectLayerHost.renderFrame(offCtx, cur, { width: W_FULL, height: H_FULL, duration: getWatermarkEffectiveTotalDuration(), backingScale: isRecordingActive ? 1 : 0.25 });
 
             // واترمارک/امضای شخصی همیشه به‌عنوان آخرین لایه رسم می‌شود تا همیشه روی همه‌چیز قابل‌دیدن بماند
             drawWatermark(cur);
@@ -4690,15 +4692,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 if (pendingEffectProjectData) {
                     effectLayerHost.loadProject(pendingEffectProjectData);
                     pendingEffectProjectData = null;
-                }
-                // 🎆 آتش‌بازی جای رعدوبرق: اگر پروژه هنوز هیچ لایه‌ای ندارد، یک لایه‌ی آماده‌ی
-                // «شلیک دستی» اضافه می‌شود تا دکمه‌های تریگر درست زیر کلیپ همیشه در دسترس باشند.
-                if (effectLayerHost.getLayers().length === 0 && host.specs.has('fireworks')) {
-                    const fxLayer = host.addLayer('fireworks');
-                    if (fxLayer) {
-                        fxLayer.settings = Object.assign({}, fxLayer.settings, { mode: 'manual' });
-                        host.render();
-                    }
                 }
                 renderDataGrid();
                 drawFrame();

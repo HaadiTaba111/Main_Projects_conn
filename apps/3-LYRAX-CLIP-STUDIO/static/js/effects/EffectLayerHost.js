@@ -296,6 +296,10 @@ export class EffectLayerHost {
         const time = Number(timeSeconds) || 0;
         const width = Number(runtime.width) || targetContext.canvas.width;
         const height = Number(runtime.height) || targetContext.canvas.height;
+        // backingScale < 1 (فقط پیش‌نمایش): هر لایه با وضوح کمتر رسترایز می‌شود ولی مختصات و ضخامت‌ها همان فضای کامل می‌ماند
+        const scale = Number(runtime.backingScale) > 0 && Number(runtime.backingScale) < 1 ? Number(runtime.backingScale) : 1;
+        const backingWidth = Math.max(1, Math.round(width * scale));
+        const backingHeight = Math.max(1, Math.round(height * scale));
         const ordered = [...this.layers].sort((a, b) => a.order - b.order);
         for (const layer of ordered) {
             if (!layer.enabled) continue;
@@ -303,7 +307,9 @@ export class EffectLayerHost {
             if (!module) continue;
             const start = Number(layer.start_time) || 0;
             const end = layer.end_time === null || layer.end_time === undefined ? Infinity : Number(layer.end_time);
-            const { canvas, context } = this._getLayerCanvas(layer.id, width, height);
+            const { canvas, context } = this._getLayerCanvas(layer.id, backingWidth, backingHeight);
+            context.__fxScale = scale;
+            context.setTransform(scale, 0, 0, scale, 0, 0);
             context.clearRect(0, 0, width, height);
             const state = this.states.get(layer.id) || {};
             try {
@@ -320,6 +326,15 @@ export class EffectLayerHost {
         if (!entry) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
+            // shadowBlur بر حسب پیکسل دستگاه است و تبدیل ماتریس را نمی‌گیرد؛ برای اینکه درخشش در وضوح کمتر
+            // همان اندازه‌ی منطقی را داشته باشد، مقدارش در ضریب backingScale ضرب می‌شود.
+            const nativeBlur = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
+            context.__fxScale = 1;
+            Object.defineProperty(context, 'shadowBlur', {
+                configurable: true,
+                get: () => nativeBlur.get.call(context),
+                set: value => nativeBlur.set.call(context, (Number(value) || 0) * context.__fxScale)
+            });
             entry = { canvas, context };
             this.canvases.set(layerId, entry);
         }
@@ -546,7 +561,7 @@ export class EffectLayerHost {
             }
             this.quickActions.appendChild(group);
         }
-        if (!layers.length) {
+        if (!sorted.length) {
             const hint = document.createElement('span');
             hint.className = 'effect-quick-hint';
             hint.textContent = 'با افزودن لایه‌ی افکت، تریگرهای دستی اینجا ظاهر می‌شوند.';

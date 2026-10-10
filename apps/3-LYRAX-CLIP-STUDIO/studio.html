@@ -4659,15 +4659,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                     effectLayerHost.loadProject(pendingEffectProjectData);
                     pendingEffectProjectData = null;
                 }
-                // 🎆 آتش‌بازی جای رعدوبرق: اگر پروژه هنوز هیچ لایه‌ای ندارد، یک لایه‌ی آماده‌ی
-                // «شلیک دستی» اضافه می‌شود تا دکمه‌های تریگر درست زیر کلیپ همیشه در دسترس باشند.
-                if (effectLayerHost.getLayers().length === 0 && host.specs.has('fireworks')) {
-                    const fxLayer = host.addLayer('fireworks');
-                    if (fxLayer) {
-                        fxLayer.settings = Object.assign({}, fxLayer.settings, { mode: 'manual' });
-                        host.render();
-                    }
-                }
                 renderDataGrid();
                 drawFrame();
             } catch (error) {
