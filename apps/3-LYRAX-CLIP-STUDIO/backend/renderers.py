@@ -144,16 +144,28 @@ class FFmpegRenderer(RenderEngine):
         cs = int(round((sec - int(sec)) * 100))
         return f"{h:01d}:{m:02d}:{s:02d}.{cs:02d}"
 
-    def _build_karaoke_text(self, words, total_cs, min_cs_per_word=8):
+    def _build_karaoke_text(self, words, total_cs, min_cs_per_word=8, highlights=None,
+                            base_size=None, sung_color=None, unsung_color=None, hl_color=None,
+                            hl_scale=1.42):
         """ساخت متن کارائوکه ASS با تگ‌های \\k روی هر کلمه.
-        total_cs: کل زمان موجود (به صدم ثانیه) برای پخش تمام کلمات این بخش (فارسی یا انگلیسی)."""
+        total_cs: کل زمان موجود (به صدم ثانیه) برای پخش تمام کلمات این بخش (فارسی یا انگلیسی).
+        highlights: پرچم «کلمه‌ی ویژه» (داخل *ستاره*) برای هر کلمه؛ همان رفتار پیش‌نمایش:
+        بزرگ‌تر (×۱٫۴۲) و زرد. رنگ‌ها و اندازه‌ی پایه برای برگرداندن وضعیت بعد از کلمه‌ی ویژه لازم است."""
         if not words:
             return ""
         n = len(words)
         per_word = max(min_cs_per_word, int(total_cs / n)) if total_cs > 0 else min_cs_per_word
         parts = []
-        for w in words:
-            parts.append(f"{{\\k{per_word}}}{w}")
+        for i, w in enumerate(words):
+            is_hl = bool(highlights[i]) if highlights and i < len(highlights) else False
+            if is_hl and base_size and hl_color and sung_color and unsung_color:
+                big = int(round(base_size * hl_scale))
+                parts.append(
+                    f"{{\\k{per_word}\\fs{big}\\1c{hl_color}\\2c{hl_color}}}{w}"
+                    f"{{\\fs{base_size}\\1c{sung_color}\\2c{unsung_color}}}"
+                )
+            else:
+                parts.append(f"{{\\k{per_word}}}{w}")
         return " ".join(parts)
 
     def _build_drawing_rect(self, x1, y1, x2, y2):
@@ -319,17 +331,19 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
             # کلمه‌ی داخل *ستاره* = کلمه‌ی ویژه (برجسته). در ASS ستاره‌ها چاپ نمی‌شوند.
             def _clean_words(raw_text):
-                words = []
+                words, flags = [], []
                 for word in raw_text.split(' '):
                     if not word:
                         continue
-                    if len(word) > 2 and word.startswith('*') and word.endswith('*'):
+                    is_hl = len(word) > 2 and word.startswith('*') and word.endswith('*')
+                    if is_hl:
                         word = word[1:-1]
                     words.append(word)
-                return words
+                    flags.append(is_hl)
+                return words, flags
 
-            persian_words = _clean_words(persian_text)
-            english_words = _clean_words(english_text)
+            persian_words, p_hl = _clean_words(persian_text)
+            english_words, e_hl = _clean_words(english_text)
 
             p_lines, p_size = _fit_words_to_lines(PERSIAN_FONT_PATH, persian_words, MAX_TEXT_WIDTH, MAX_LINES, persian_base_size, 30)
             p_line_h = int(round(p_size * 1.35))
@@ -389,8 +403,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_chunks = []
                 for lw in p_lines:
                     chunk_words = persian_words[idx: idx + len(lw)]
+                    chunk_hl = p_hl[idx: idx + len(lw)]
                     idx += len(lw)
-                    chunk_txt = self._build_karaoke_text(chunk_words, total_cs_persian // max(1, len(persian_words)) * len(chunk_words) if len(persian_words) else 0)
+                    chunk_txt = self._build_karaoke_text(
+                        chunk_words,
+                        total_cs_persian // max(1, len(persian_words)) * len(chunk_words) if len(persian_words) else 0,
+                        highlights=chunk_hl, base_size=p_size,
+                        sung_color="&HFFFFFF&", unsung_color=self._hex_to_ass_color(persian_color),
+                        hl_color=self._hex_to_ass_color('#FFF000'))
                     line_chunks.append(chunk_txt)
                 full_persian_karaoke = "\\N".join(line_chunks)
 
@@ -435,8 +455,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 line_chunks = []
                 for lw in e_lines:
                     chunk_words = english_words[idx: idx + len(lw)]
+                    chunk_hl = e_hl[idx: idx + len(lw)]
                     idx += len(lw)
-                    chunk_txt = self._build_karaoke_text(chunk_words, total_cs_english // max(1, len(english_words)) * len(chunk_words) if len(english_words) else 0)
+                    chunk_txt = self._build_karaoke_text(
+                        chunk_words,
+                        total_cs_english // max(1, len(english_words)) * len(chunk_words) if len(english_words) else 0,
+                        highlights=chunk_hl, base_size=e_size,
+                        sung_color=self._hex_to_ass_color(persian_color), unsung_color=self._hex_to_ass_color('#00E5FF'),
+                        hl_color=self._hex_to_ass_color('#FFF000'))
                     line_chunks.append(chunk_txt)
                 full_english_karaoke = "\\N".join(line_chunks)
 
