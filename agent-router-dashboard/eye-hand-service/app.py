@@ -3,10 +3,10 @@
 No third-party Python deps. Eye reads page log files; Hand uses xdotool.
 Run: DISPLAY=:0 python3 app.py   ->  http://127.0.0.1:8765
 """
-import json, os, re, shutil, subprocess, time
+import json, os, re, shutil, subprocess, time, html as htmlmod, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
 HOST, PORT = os.getenv("EH_HOST","127.0.0.1"), int(os.getenv("EH_PORT","8765"))
 ALLOWED_ROOTS = [Path(x).expanduser() for x in os.getenv("EH_LOG_ROOTS","/tmp:~/page-logs:/var/log").split(":")]
@@ -56,6 +56,31 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, run_xdo(["key","--clearmodifiers",keys]))
         if u.path == "/hand/type":
             return self._send(200, run_xdo(["type","--clearmodifiers","--",str(b.get("text",""))]))
+        if u.path == "/hand/mouse":
+            x, y, action = int(b.get("x",0)), int(b.get("y",0)), str(b.get("action","move"))
+            args = ["mousemove", str(x), str(y)]
+            out = [run_xdo(args)]
+            if action in ("click","double","right"):
+                btn = "3" if action=="right" else "1"
+                out.append(run_xdo(["click", btn]))
+                if action=="double": out.append(run_xdo(["click", btn]))
+            return self._send(200, {"ok": True, "results": out})
+        if u.path == "/search":
+            q = str(b.get("query","")).strip(); count = min(int(b.get("count",5)), 10)
+            if not q: return self._send(400, {"detail": "query خالی است"})
+            try:
+                req = urllib.request.Request("https://lite.duckduckgo.com/lite/?q="+quote(q),
+                                             headers={"User-Agent":"Mozilla/5.0"})
+                doc = urllib.request.urlopen(req, timeout=15).read().decode("utf-8","replace")
+                rows = re.findall(r'<a[^>]+href="([^"]+)"[^>]*class=.result-link.>(.*?)</a>', doc, re.S)
+                snips = re.findall(r'class=.result-snippet.>(.*?)</td>', doc, re.S)
+                clean = lambda t: re.sub(r"<[^>]+>","",htmlmod.unescape(t)).strip()
+                results = [{"title": clean(t), "url": htmlmod.unescape(u),
+                            "snippet": clean(snips[i]) if i < len(snips) else ""}
+                           for i,(u,t) in enumerate(rows[:count])]
+                return self._send(200, {"ok": True, "query": q, "results": results})
+            except Exception as e:
+                return self._send(502, {"detail": f"جستجو ناموفق: {e}"})
         if u.path == "/hand/macro":
             out=[]
             for st in b.get("steps",[])[:50]:

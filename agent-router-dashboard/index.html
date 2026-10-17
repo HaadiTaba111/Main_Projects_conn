@@ -50,6 +50,10 @@ canvas{width:100%;height:220px}
     <button data-page="history">🕘 تاریخچه چت</button>
     <button data-page="logs">📜 لاگ درخواست‌ها</button>
     <button data-page="snippets">🧩 نمونه‌کدها</button>
+    <button data-page="agent">🤖 ایجنت و روتینگ مدل‌ها</button>
+    <button data-page="activity">📡 فعالیت زنده ایجنت</button>
+    <button data-page="modules">🧩 ماژول‌ها</button>
+    <button data-page="perms">🔐 دسترسی‌ها و پروفایل‌ها</button>
     <button data-page="eyehand">👁️⌨️ چشم و دست</button>
     <button data-page="settings">⚙️ تنظیمات</button>
   </nav>
@@ -157,6 +161,65 @@ sleep:800</textarea><button class="btn cyan" onclick="runMacro()">▶ اجرای
       </div>
     </div>
   </section>
+    <div class="card" style="margin-top:14px" id="mouseModuleCard">
+      <b>🖱️ ماژول ماوس (عنداللزوم — نیازمند دسترسی «حرکت ماوس»)</b>
+      <p class="muted">اصل با Shortcut است؛ ماوس فقط وقتی میانبر جواب نمی‌دهد. مختصات مطلق روی صفحه اوبونتو:</p>
+      <div class="row"><input id="mouseX" type="number" value="500" style="width:110px"><input id="mouseY" type="number" value="400" style="width:110px">
+      <button class="btn" onclick="sendMouse('move')">حرکت</button><button class="btn primary" onclick="sendMouse('click')">کلیک</button><button class="btn" onclick="sendMouse('double')">دبل‌کلیک</button><button class="btn" onclick="sendMouse('right')">راست‌کلیک</button></div>
+    </div>
+  <!-- AGENT -->
+  <section class="page" id="page-agent">
+    <div class="card"><b>🤖 ایجنت دو مدله — اشتراک API + Ollama با مترجم واسط</b>
+      <p class="muted">مثال: سؤال فارسی شما ← <b>مدل مترجم</b> (فارسی↔انگلیسی) ← <b>مدل اصلی</b> مثل DeepSeek R1 که فارسی بلد نیست ← جواب انگلیسی ← مترجم ← پاسخ فارسی. هر مرحله زنده در تب «فعالیت زنده» دیده می‌شود. اگر متن فارسی نباشد، ترجمه خودکار رد می‌شود.</p>
+      <div class="grid3">
+        <div><label>مدل اصلی (استدلال)</label><select id="mainModel"></select></div>
+        <div><label>مدل مترجم</label><select id="translatorModel"></select></div>
+        <div><label>حالت ترجمه</label><select id="translateMode"><option value="auto">خودکار (فقط اگر فارسی بود)</option><option value="always">همیشه</option><option value="off">خاموش — مستقیم به مدل اصلی</option></select></div>
+      </div>
+      <div class="row" style="margin-top:12px"><label style="margin:0"><input type="checkbox" id="agentSearch" style="width:auto"> 🌐 اول در اینترنت جستجو کن (نیازمند دسترسی جستجو)</label>
+      <button class="btn" onclick="refreshAllModels()">↻ بارگذاری مدل‌های API + Ollama</button><span id="ollamaStatus" class="pill warn">Ollama: بررسی نشده</span></div>
+      <label>سؤال / دستور شما (فارسی بنویسید)</label><textarea id="agentInput" style="min-height:80px" placeholder="مثلاً: الگوریتم مرتب‌سازی سریع را با مثال توضیح بده"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="agentRunBtn" onclick="runAgent()">▶ اجرای ایجنت</button><span class="muted">مراحل: ترجمه ورودی → (جستجو) → مدل اصلی → ترجمه خروجی</span></div>
+      <div class="grid3" style="margin-top:14px">
+        <div><label>۱) ترجمه ورودی (EN)</label><pre class="code" id="stageT1" style="min-height:110px">—</pre></div>
+        <div><label>۲) پاسخ مدل اصلی</label><pre class="code" id="stageMain" style="min-height:110px">—</pre></div>
+        <div><label>۳) پاسخ نهایی فارسی</label><pre class="code" id="stageFinal" style="min-height:110px">—</pre></div>
+      </div>
+      <div id="agentSearchResults" style="margin-top:10px"></div>
+    </div>
+    <div class="card" style="margin-top:14px"><b>⚙️ اتصال Ollama (محلی روی اوبونتو)</b>
+      <div class="row"><input id="ollamaBase" dir="ltr" value="http://127.0.0.1:11434" style="flex:1;width:auto"><button class="btn primary" onclick="testOllama()">تست و دریافت مدل‌ها</button></div>
+      <p class="muted">نصب روی اوبونتو ۲۲.۰۴: <span class="mono">curl -fsSL https://ollama.com/install.sh | sh && ollama pull qwen2.5:7b</span> — برای دسترسی مرورگر: <span class="mono">OLLAMA_ORIGINS=* ollama serve</span></p>
+    </div>
+  </section>
+
+  <!-- ACTIVITY -->
+  <section class="page" id="page-activity">
+    <div class="card"><div class="row" style="justify-content:space-between"><b>📡 فعالیت زنده — مدل/ایجنت الان دارد چه کار می‌کند؟</b><div class="row"><select id="actFilter" onchange="renderActivities()" style="width:180px"><option value="">همه ماژول‌ها</option><option>agent</option><option>translator</option><option>search</option><option>eye</option><option>hand</option><option>provider</option><option>permission</option></select><button class="btn danger" onclick="clearActivities()">پاک‌کردن</button></div></div>
+      <div class="row" style="margin-top:12px"><span class="pill warn" id="agentLiveStatus">ایجنت: بیکار</span><span class="muted" id="actSummary"></span></div>
+      <div id="activityList" style="margin-top:12px;display:grid;gap:8px"></div>
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section class="page" id="page-modules">
+    <div class="card"><b>🧩 ماژول‌ها — هر قابلیت جدا، فقط عنداللزوم روشن شود</b>
+      <p class="muted">خاموش‌کردن یک ماژول، همه مسیرهای مرتبطش را می‌بندد. روشن‌کردنش اگر دسترسی لازم را نداشته باشد، اول از شما اجازه می‌خواهد.</p>
+      <div class="grid3" id="modulesGrid" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- PERMISSIONS -->
+  <section class="page" id="page-perms">
+    <div class="card"><b>🔐 پروفایل‌های دسترسی — یک نام، یک انتخاب، دسترسی آماده برای ایجنت</b>
+      <div class="row" style="margin-top:10px"><select id="profileSelect" style="flex:1;width:auto"></select><button class="btn primary" onclick="applySelectedProfile()">اعمال پروفایل انتخاب‌شده</button><button class="btn danger" onclick="deleteCustomProfile()">حذف پروفایل سفارشی</button></div>
+      <p class="muted" id="activeProfileLabel">پروفایل فعال: —</p>
+      <div class="grid2"><div><label>ساخت پروفایل جدید از وضعیت فعلی دسترسی‌های پایین</label><div class="row"><input id="newProfileName" placeholder="مثلاً: تحقیق اینترنتی امن" style="flex:1;width:auto"><button class="btn cyan" onclick="saveCustomProfile()">ذخیره پروفایل</button></div></div>
+      <div><label>پروفایل‌های آماده</label><p class="muted">👀 «فقط مشاهده» • ⌨️ «مرورگر با Shortcut» • 🌐 «تحقیق اینترنتی» • 🖱️ «کنترل کامل اوبونتو (خطرناک)»</p></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><b>دسترسی‌های تکی (دستی هم می‌توانید هرکدام را روشن/خاموش کنید)</b><div id="permsList" style="margin-top:10px;display:grid;gap:8px"></div></div>
+  </section>
+
   <section class="page" id="page-settings"><div class="card"><b>تنظیمات عمومی</b>
     <label>Base URL پیش‌فرض برای کلیدهای جدید</label><input id="defaultBase" value="https://agentrouter.org/v1">
     <label>مهلت درخواست (ثانیه)</label><input id="timeoutSec" type="number" value="120">
@@ -274,5 +337,10 @@ renderShortcuts();
 $('defaultBase').value=state.settings.base;$('timeoutSec').value=state.settings.timeout;
 renderAll();
 </script>
+<script src="modules/permissions.js"></script>
+<script src="modules/activity.js"></script>
+<script src="modules/providers.js"></script>
+<script src="modules/agent.js"></script>
+<script src="modules/modules-ui.js"></script>
 </body>
 </html>
