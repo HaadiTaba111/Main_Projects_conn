@@ -185,6 +185,15 @@ sleep:800</textarea><button class="btn cyan" onclick="runMacro()">▶ اجرای
       <div class="row"><input id="skillName" placeholder="نام مهارت دستی..." style="flex:1;width:auto"><input id="skillUrl" placeholder="الگوی URL (مثلاً /login)" dir="ltr" style="flex:1;width:auto"><button class="btn cyan" onclick="createSkillFromMacro()">ساخت مهارت از ماکروی تب چشم‌ودست</button></div>
       <div id="skillsList" style="display:grid;gap:10px;margin-top:12px"></div>
     </div>
+    <div class="card" style="margin-top:14px"><b>🌱 پلی‌بوک اولیه از مغز (Seed Skills) — از روز اول سریع باش</b>
+      <p class="muted">به‌جای اینکه مغز هر بار قدم‌به‌قدم دستور بدهد، همان اول کارهای عرفی‌تان را یک‌جا بنویسید؛ مغز <b>یک بار</b> آن‌ها را به تکه‌های اجرایی (Shortcut/تایپ) خرد می‌کند و پیش‌نویس مهارت می‌سازد. شما تأیید می‌کنید → ذخیره می‌شود → از آن به بعد چشم‌ودست <b>الگوریتمی و بدون مغز</b> اجراش می‌کنند و فقط اگر خطا/وضعیت تازه بود، سراغ مغز می‌روند.</p>
+      <label>کارهای عرفی و همیشگی (هر خط یک کار)</label>
+      <textarea id="seedTasks">ورود به صفحه لاگین و آماده‌کردن فرم ورود
+ساخت یک API Key جدید در داشبورد
+بررسی خطاهای لاگ و رفرش صفحه</textarea>
+      <div class="row" style="margin-top:10px"><button class="btn primary" onclick="generateSeedSkills()">🧠 مغز: خرد کن و پیش‌نویس بساز</button><span class="muted">خروجی در فهرست مهارت‌ها به‌صورت «پیش‌نویس» می‌آید؛ تا تأیید نکنید فعال نمی‌شود.</span></div>
+      <div id="seedStatus" class="muted" style="margin-top:8px"></div>
+    </div>
     <div class="card" style="margin-top:14px"><b>🎓 آموزش توسط خودم (Demonstration) — تو یاد بده، ایجنت عیناً تکرار می‌کند</b>
       <p class="muted">برای کارهای ثابت، این بهترین روش است: نه توکن مصرف می‌شود، نه مدل حدس می‌زند. قدم‌ها را با فرمت ماکرو بنویس، یک بار «تست» بگیر، اگر موفق بود «فعال‌سازی مهارت» را بزن.</p>
       <div class="grid3"><div><label>نام فعالیت</label><input id="teachName" placeholder="مثلاً: ورود به پنل و ساخت کلید"></div>
@@ -414,5 +423,6 @@ renderAll();
 <script src="modules/chain.js"></script>
 <script src="modules/memory.js"></script>
 <script src="modules/system.js"></script>
+<script src="modules/seeder.js"></script>
 </body>
 </html>
