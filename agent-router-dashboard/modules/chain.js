@@ -16,6 +16,8 @@ function loadChainPreset(){
     ? [{name:'مترجم ورودی',model:tr,role:'translator_en'},{name:'مدل اصلی',model:main,role:'reasoner'},{name:'مترجم خروجی',model:tr,role:'translator_fa'}]
     : p==='eye'
     ? [{name:'تحلیل چشم',model:main,role:'eye_analyst'}]
+    : p==='eye_deepseek'
+    ? [{name:'تحلیل چشم',model:main,role:'eye_analyst'},{name:'منتقد (بازبینی تصمیم)',model:main,role:'critic'},{name:'مترجم خروجی',model:tr,role:'translator_fa'}]
     : [{name:'تحلیل‌گر',model:main,role:'researcher'},{name:'منتقد',model:tr,role:'critic'}];
   save(); renderChain();
 }

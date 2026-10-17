@@ -56,6 +56,7 @@ canvas{width:100%;height:220px}
     <button data-page="perms">🔐 دسترسی‌ها و پروفایل‌ها</button>
     <button data-page="memory">🧠 حافظه و مهارت‌ها</button>
     <button data-page="eyehand">👁️⌨️ چشم و دست</button>
+    <button data-page="docs">📖 راهنما و مستندات</button>
     <button data-page="settings">⚙️ تنظیمات</button>
   </nav>
   <div class="sidebox"><b>🔒 امنیت کلیدها</b><p>کلیدها فقط داخل مرورگر شما (LocalStorage) ذخیره می‌شوند و جز به آدرس AgentRouter ارسال نمی‌شوند. برای استفاده اشتراکی، حتماً از کلید جدا استفاده کنید.</p></div>
@@ -246,6 +247,7 @@ key:Tab</textarea>
         <option value="translate">🔤 مترجم → DeepSeek (اصلی) → مترجم</option>
         <option value="eye">👁️ چشم (خلاصه لاگ) → مدل تصمیم‌گیر → پیشنهاد Shortcut</option>
         <option value="research">🌐 جستجو → تحلیل‌گر → منتقد</option>
+        <option value="eye_deepseek">👁️ چشم → DeepSeek → منتقد → مترجم</option>
       </select><button class="btn" onclick="loadChainPreset()">بارگذاری پریست</button>
       <button class="btn" onclick="addChainStep()">+ قدم جدید</button>
       <button class="btn primary" onclick="runChain()">▶ اجرای زنجیره</button></div>
@@ -295,6 +297,14 @@ key:Tab</textarea>
       <div><label>پروفایل‌های آماده</label><p class="muted">👀 «فقط مشاهده» • ⌨️ «مرورگر با Shortcut» • 🌐 «تحقیق اینترنتی» • 🖱️ «کنترل کامل اوبونتو (خطرناک)»</p></div></div>
     </div>
     <div class="card" style="margin-top:14px"><b>دسترسی‌های تکی (دستی هم می‌توانید هرکدام را روشن/خاموش کنید)</b><div id="permsList" style="margin-top:10px;display:grid;gap:8px"></div></div>
+  </section>
+
+  <!-- DOCS -->
+  <section class="page" id="page-docs">
+    <div class="card"><b>📖 راهنما و مستندات کامل سیستم</b>
+      <p class="muted">راهنمای هر بخش همین‌جا هست. نکته سریع: داخل هر تب دکمهٔ «؟ راهنمای این بخش» بالای صفحه هست و هر جا باشید با کلید <b>F1</b> راهنمای همان قسمت باز می‌شود. سند متنی کامل هم در <span class="mono">docs/USER-GUIDE.md</span> داخل ریپو است.</p>
+      <input id="docsSearch" placeholder="جستجو در راهنما..." oninput="renderDocs()" style="margin:10px 0">
+      <div id="docsList" style="display:grid;gap:12px"></div></div>
   </section>
 
   <section class="page" id="page-settings"><div class="card"><b>تنظیمات عمومی</b>
@@ -424,5 +434,6 @@ renderAll();
 <script src="modules/memory.js"></script>
 <script src="modules/system.js"></script>
 <script src="modules/seeder.js"></script>
+<script src="modules/help.js"></script>
 </body>
 </html>
