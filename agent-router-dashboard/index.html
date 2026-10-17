@@ -185,6 +185,19 @@ sleep:800</textarea><button class="btn cyan" onclick="runMacro()">▶ اجرای
       <div class="row"><input id="skillName" placeholder="نام مهارت دستی..." style="flex:1;width:auto"><input id="skillUrl" placeholder="الگوی URL (مثلاً /login)" dir="ltr" style="flex:1;width:auto"><button class="btn cyan" onclick="createSkillFromMacro()">ساخت مهارت از ماکروی تب چشم‌ودست</button></div>
       <div id="skillsList" style="display:grid;gap:10px;margin-top:12px"></div>
     </div>
+    <div class="card" style="margin-top:14px"><b>🎓 آموزش توسط خودم (Demonstration) — تو یاد بده، ایجنت عیناً تکرار می‌کند</b>
+      <p class="muted">برای کارهای ثابت، این بهترین روش است: نه توکن مصرف می‌شود، نه مدل حدس می‌زند. قدم‌ها را با فرمت ماکرو بنویس، یک بار «تست» بگیر، اگر موفق بود «فعال‌سازی مهارت» را بزن.</p>
+      <div class="grid3"><div><label>نام فعالیت</label><input id="teachName" placeholder="مثلاً: ورود به پنل و ساخت کلید"></div>
+      <div><label>الگوی URL صفحه شروع</label><input id="teachUrl" dir="ltr" placeholder="/login"></div>
+      <div><label>هدف (برای آینده/گزارش)</label><input id="teachGoal" placeholder="لاگین و رفتن به داشبورد"></div></div>
+      <label>قدم‌ها (هر خط: key:ctrl+l یا type:متن یا sleep:500)</label>
+      <textarea id="teachSteps" dir="ltr" style="text-align:left">key:ctrl+l
+type:example.com/login
+key:Return
+sleep:1000
+key:Tab</textarea>
+      <div class="row" style="margin-top:10px"><button class="btn" onclick="testTaughtSkill()">🧪 تست قدم‌ها</button><button class="btn primary" onclick="saveTaughtSkill()">✅ ذخیره و فعال‌سازی مهارت</button><span class="muted" id="teachStatus">اول تست بگیرید؛ بعد از تست موفق ذخیره کنید.</span></div>
+    </div>
     <div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><b>📚 دفتر تجربه‌ها</b><button class="btn danger" onclick="if(confirm('همه تجربه‌ها و مهارت‌ها پاک شود؟')){state.skills=[];state.experiences=[];save();renderMemory()}">پاک‌کردن حافظه</button></div>
       <div id="expList" style="display:grid;gap:8px;margin-top:10px"></div></div>
   </section>
@@ -238,6 +251,17 @@ sleep:800</textarea><button class="btn cyan" onclick="runMacro()">▶ اجرای
     <div class="card"><div class="row" style="justify-content:space-between"><b>📡 فعالیت زنده — مدل/ایجنت الان دارد چه کار می‌کند؟</b><div class="row"><select id="actFilter" onchange="renderActivities()" style="width:180px"><option value="">همه ماژول‌ها</option><option>agent</option><option>translator</option><option>search</option><option>eye</option><option>hand</option><option>provider</option><option>permission</option></select><button class="btn danger" onclick="clearActivities()">پاک‌کردن</button></div></div>
       <div class="row" style="margin-top:12px"><span class="pill warn" id="agentLiveStatus">ایجنت: بیکار</span><span class="muted" id="actSummary"></span></div>
       <div id="activityList" style="margin-top:12px;display:grid;gap:8px"></div>
+    </div>
+    <div class="grid3" style="margin-top:14px">
+      <div class="card"><b>🖥️ منابع سیستم اوبونتو</b><div id="resBox" class="muted" style="margin-top:8px">در انتظار سرویس اوبونتو…</div>
+        <label>حد مجاز RAM برای اجرای ایجنت (٪)</label><input id="resRamLimit" type="number" value="90" min="50" max="99">
+        <div class="row" style="margin-top:8px"><button class="btn" onclick="refreshResources(true)">↻ بروزرسانی</button><button class="btn danger" onclick="unloadOllamaModels()">آزادسازی RAM مدل‌های Ollama</button></div></div>
+      <div class="card"><b>🌀 نگهبان لوپ (حلقه گنگ)</b><p class="muted" id="loopBox">لوپی دیده نشده. اگر یک عمل روی یک وضعیت صفحه ≥۳ بار در ۲ دقیقه تکرار شود، نگهبان مکث می‌کند و از شما کمک می‌خواهد.</p>
+        <div class="row"><button class="btn primary" onclick="loopResume()">▶ ادامه بده (ریست نگهبان)</button><button class="btn" onclick="loopAskBrain()">از مغز بپرس</button></div></div>
+      <div class="card"><b>⏰ زمان‌بندی</b><p class="muted">داشبورد ساعت زنده دارد (بالای صفحه). تسک‌ها وقتی اجرا می‌شوند که داشبورد باز و سیستم روشن باشد؛ تسک ازدست‌رفته هنگام بازشدن گزارش می‌شود.</p>
+        <div class="grid" style="grid-template-columns:1fr;gap:8px"><input id="schName" placeholder="نام تسک"><div class="row"><select id="schType" style="flex:1;width:auto"><option value="skill">اجرای مهارت</option><option value="eye">چک‌کردن چشم/لاگ</option><option value="chain">اجرای زنجیره ایجنت</option></select><input id="schEvery" type="number" value="5" style="width:90px" title="هر چند دقیقه"></div>
+        <select id="schSkill"></select><button class="btn primary" onclick="addSchedule()">+ افزودن تسک</button></div>
+        <div id="scheduleList" style="display:grid;gap:8px;margin-top:10px"></div></div>
     </div>
   </section>
 
@@ -387,5 +411,6 @@ renderAll();
 <script src="modules/modules-ui.js"></script>
 <script src="modules/chain.js"></script>
 <script src="modules/memory.js"></script>
+<script src="modules/system.js"></script>
 </body>
 </html>

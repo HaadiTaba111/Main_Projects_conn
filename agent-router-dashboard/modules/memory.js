@@ -8,10 +8,25 @@ function eyeSignature(p){
   if(!p) return '';
   return [p.url||'', p.title||'', (p.inputs||[]).join(','), (p.buttons||[]).slice(0,5).join(',')].join('|').toLowerCase();
 }
+function fuzzyScore(a, b){
+  const tok=x=>new Set(String(x||'').toLowerCase().split(/[|,/ ]+/).filter(Boolean));
+  const A=tok(a), B=tok(b); if(!A.size||!B.size) return 0;
+  let hit=0; A.forEach(x=>{ if(B.has(x)) hit++; });
+  return hit/Math.max(A.size,B.size);
+}
 function findSkill(p){
   const sig=eyeSignature(p); if(!sig) return null;
-  return state.skills.find(s=>s.enabled && s.signature===sig) ||
-         state.skills.find(s=>s.enabled && s.urlPattern && p.url && p.url.includes(s.urlPattern)) || null;
+  const exact=state.skills.find(s=>s.enabled && s.signature===sig);
+  if(exact){ exact._score=1; return exact; }
+  let best=null, bestScore=0;
+  for(const s of state.skills){
+    if(!s.enabled) continue;
+    let score=fuzzyScore(sig, s.signature||'');
+    if(s.urlPattern && p.url && p.url.includes(s.urlPattern)) score=Math.max(score, .85);
+    if(score>bestScore){ bestScore=score; best=s; }
+  }
+  if(best && bestScore>=0.8){ best._score=bestScore; return best; }   // تطبیق فازی ≥۸۰٪
+  return null;
 }
 function logExperience(kind, text){
   state.experiences.unshift({id:Date.now()+Math.random(), time:Date.now(), kind, text:String(text).slice(0,400)});

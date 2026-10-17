@@ -40,6 +40,19 @@ class H(BaseHTTPRequestHandler):
         if u.path == "/health":
             return self._send(200, {"ok": True, "mode": "real (xdotool)" if xdotool_mode() else "simulated",
                                     "display": os.getenv("DISPLAY"), "xdotool": shutil.which("xdotool"), "emergency_stopped": STOPPED["on"]})
+        if u.path == "/resources":
+            def cpu():
+                a=[int(x) for x in Path("/proc/stat").read_text().splitlines()[0].split()[1:]]; time.sleep(.1)
+                b=[int(x) for x in Path("/proc/stat").read_text().splitlines()[0].split()[1:]]
+                idle=b[3]-a[3]; tot=sum(b)-sum(a); return round(100*(1-idle/max(tot,1)),1)
+            mem={}
+            for ln in Path("/proc/meminfo").read_text().splitlines():
+                k,v=ln.split(":"); mem[k]=int(v.split()[0])*1024
+            total, avail = mem.get("MemTotal",0), mem.get("MemAvailable",0)
+            d=shutil.disk_usage("/")
+            return self._send(200, {"ok":True,"cpu_percent":cpu(),"ram_total":total,"ram_used":total-avail,
+                "ram_percent":round(100*(total-avail)/max(total,1),1),"disk_percent":round(100*d.used/max(d.total,1),1),
+                "load":list(os.getloadavg()),"uptime_sec":float(Path("/proc/uptime").read_text().split()[0])})
         if u.path == "/eye/log":
             raw = q.get("path", ["/tmp/page.log"])[0]; lines = min(int(q.get("lines",["300"])[0]), 2000)
             p = Path(raw).expanduser()
