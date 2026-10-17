@@ -123,6 +123,10 @@ canvas{width:100%;height:220px}
   <!-- EYE & HAND -->
   <section class="page" id="page-eyehand">
     <div class="card">
+      <b>🔀 چشم و دست به چه کسی وصل‌اند؟</b>
+      <p class="muted">چشم → <b>Parser (بدون مدل)</b> → خلاصه ساخت‌یافته → اگر لازم بود <b>مترجم</b> (فقط متن داخل خلاصه را انگلیسی می‌کند) → <b>مدل اصلی تصمیم‌گیر (مثل DeepSeek R1)</b> که ACTION می‌دهد → ACTION بدون ترجمه و پس از اعتبارسنجی+اجازه شما → <b>دست</b>. توضیح تصمیم برای شما برعکس همین مسیر را با مترجم فارسی می‌شود. <b>مترجم هرگز دست را کنترل نمی‌کند.</b></p>
+      <div class="row"><label style="margin:0">مدل تصمیم‌گیر چشم:</label><select id="eyeDecisionModel" style="flex:1;width:auto"></select><button class="btn primary" onclick="runEyeDecision()">🤖 تحلیل چشم با مدل تصمیم‌گیر</button></div>
+      <hr style="border-color:var(--line);margin:16px 0">
       <b>👁️ چشم — اول لاگ صفحه، دوربین فقط عنداللزوم</b>
       <p class="muted">ترتیب سرعت: <b>۱) لاگ صفحه (سریع‌ترین)</b> ← ۲) خلاصه DOM/متن صفحه ← ۳) اسکرین‌شات ← ۴) دوربین (فقط وقتی لاگ چیزی نشان نمی‌دهد). خامِ کامل برای مدل ارسال نمی‌شود؛ اول همین‌جا خلاصه و dedupe می‌شود تا هم سریع باشد هم توکن کم مصرف شود.</p>
       <div class="grid3">
@@ -193,6 +197,24 @@ sleep:800</textarea><button class="btn cyan" onclick="runMacro()">▶ اجرای
     </div>
   </section>
 
+  <!-- AGENT CHAIN (inside agent page flow, rendered as its own card via section) -->
+  <section class="page" id="page-chain" style="display:none"></section>
+  <div class="card" style="margin:14px 26px 0" id="chainCard">
+      <b>⛓️ زنجیره ایجنت‌ها — خروجی هر ایجنت، ورودی بعدی است</b>
+      <p class="muted">پریست‌ها: «ترجمه+DeepSeek» • «چشم ← تحلیل ← پیشنهاد دست» • «جستجو ← تحلیل ← نقد». هر قدم مدل و نقش جدا دارد و در فعالیت زنده دیده می‌شود. قدم «پیشنهاد دست» هیچ‌وقت خودش اجرا نمی‌کند؛ ACTION فقط داخل کادر Shortcut قرار می‌گیرد تا شما اجرا کنید.</p>
+      <div class="row"><select id="chainPreset" style="flex:1;width:auto">
+        <option value="translate">🔤 مترجم → DeepSeek (اصلی) → مترجم</option>
+        <option value="eye">👁️ چشم (خلاصه لاگ) → مدل تصمیم‌گیر → پیشنهاد Shortcut</option>
+        <option value="research">🌐 جستجو → تحلیل‌گر → منتقد</option>
+      </select><button class="btn" onclick="loadChainPreset()">بارگذاری پریست</button>
+      <button class="btn" onclick="addChainStep()">+ قدم جدید</button>
+      <button class="btn primary" onclick="runChain()">▶ اجرای زنجیره</button></div>
+      <div id="chainSteps" style="display:grid;gap:10px;margin-top:12px"></div>
+      <label>ورودی زنجیره (اگر خالی باشد از سؤال ایجنت / خلاصه چشم استفاده می‌شود)</label>
+      <textarea id="chainInput" placeholder="ورودی قدم اول..."></textarea>
+      <label>خروجی نهایی زنجیره</label><pre class="code" id="chainOutput" style="min-height:120px">—</pre>
+  </div>
+
   <!-- ACTIVITY -->
   <section class="page" id="page-activity">
     <div class="card"><div class="row" style="justify-content:space-between"><b>📡 فعالیت زنده — مدل/ایجنت الان دارد چه کار می‌کند؟</b><div class="row"><select id="actFilter" onchange="renderActivities()" style="width:180px"><option value="">همه ماژول‌ها</option><option>agent</option><option>translator</option><option>search</option><option>eye</option><option>hand</option><option>provider</option><option>permission</option></select><button class="btn danger" onclick="clearActivities()">پاک‌کردن</button></div></div>
@@ -212,7 +234,9 @@ sleep:800</textarea><button class="btn cyan" onclick="runMacro()">▶ اجرای
   <!-- PERMISSIONS -->
   <section class="page" id="page-perms">
     <div class="card"><b>🔐 پروفایل‌های دسترسی — یک نام، یک انتخاب، دسترسی آماده برای ایجنت</b>
-      <div class="row" style="margin-top:10px"><select id="profileSelect" style="flex:1;width:auto"></select><button class="btn primary" onclick="applySelectedProfile()">اعمال پروفایل انتخاب‌شده</button><button class="btn danger" onclick="deleteCustomProfile()">حذف پروفایل سفارشی</button></div>
+      <div class="row" style="margin-top:10px"><select id="profileSelect" style="flex:1;width:auto"></select><button class="btn primary" onclick="applySelectedProfile()">اعمال پروفایل انتخاب‌شده</button><button class="btn danger" onclick="deleteCustomProfile()">حذف پروفایل سفارشی</button>
+      <button class="btn" onclick="exportProfiles()">⬇️ خروجی پروفایل‌ها (JSON)</button>
+      <label class="btn" style="cursor:pointer">⬆️ ورود پروفایل‌ها<input type="file" hidden accept=".json" onchange="importProfiles(this)"></label></div>
       <p class="muted" id="activeProfileLabel">پروفایل فعال: —</p>
       <div class="grid2"><div><label>ساخت پروفایل جدید از وضعیت فعلی دسترسی‌های پایین</label><div class="row"><input id="newProfileName" placeholder="مثلاً: تحقیق اینترنتی امن" style="flex:1;width:auto"><button class="btn cyan" onclick="saveCustomProfile()">ذخیره پروفایل</button></div></div>
       <div><label>پروفایل‌های آماده</label><p class="muted">👀 «فقط مشاهده» • ⌨️ «مرورگر با Shortcut» • 🌐 «تحقیق اینترنتی» • 🖱️ «کنترل کامل اوبونتو (خطرناک)»</p></div></div>
@@ -337,10 +361,12 @@ renderShortcuts();
 $('defaultBase').value=state.settings.base;$('timeoutSec').value=state.settings.timeout;
 renderAll();
 </script>
+<script src="modules/emergency.js"></script>
 <script src="modules/permissions.js"></script>
 <script src="modules/activity.js"></script>
 <script src="modules/providers.js"></script>
 <script src="modules/agent.js"></script>
 <script src="modules/modules-ui.js"></script>
+<script src="modules/chain.js"></script>
 </body>
 </html>

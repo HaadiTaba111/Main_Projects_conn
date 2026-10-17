@@ -8,6 +8,7 @@ async function translate(text, to, model){
   return r.text.trim();
 }
 async function runAgent(){
+  if(state.emergency) return toast('🛑 Emergency Stop فعال است');
   const q=$('agentInput').value.trim(); if(!q) return toast('اول سؤال را بنویسید');
   const main=$('mainModel').value, tr=$('translatorModel').value; if(!main) return toast('مدل اصلی انتخاب نشده');
   $('agentRunBtn').disabled=true;

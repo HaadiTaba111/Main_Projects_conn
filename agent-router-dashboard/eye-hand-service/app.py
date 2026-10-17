@@ -11,6 +11,7 @@ from urllib.parse import urlparse, parse_qs, quote
 HOST, PORT = os.getenv("EH_HOST","127.0.0.1"), int(os.getenv("EH_PORT","8765"))
 ALLOWED_ROOTS = [Path(x).expanduser() for x in os.getenv("EH_LOG_ROOTS","/tmp:~/page-logs:/var/log").split(":")]
 KEY_RE = re.compile(r"^[A-Za-z0-9_+.\-]+$")
+STOPPED = {"on": False}   # Emergency Stop flag — hand refuses everything while on
 
 def xdotool_mode():
     return bool(shutil.which("xdotool") and os.getenv("DISPLAY"))
@@ -38,7 +39,7 @@ class H(BaseHTTPRequestHandler):
         u = urlparse(self.path); q = parse_qs(u.query)
         if u.path == "/health":
             return self._send(200, {"ok": True, "mode": "real (xdotool)" if xdotool_mode() else "simulated",
-                                    "display": os.getenv("DISPLAY"), "xdotool": shutil.which("xdotool")})
+                                    "display": os.getenv("DISPLAY"), "xdotool": shutil.which("xdotool"), "emergency_stopped": STOPPED["on"]})
         if u.path == "/eye/log":
             raw = q.get("path", ["/tmp/page.log"])[0]; lines = min(int(q.get("lines",["300"])[0]), 2000)
             p = Path(raw).expanduser()
@@ -50,6 +51,12 @@ class H(BaseHTTPRequestHandler):
         return self._send(404, {"detail": "not found"})
     def do_POST(self):
         u = urlparse(self.path); b = self._body()
+        if u.path == "/emergency/stop":
+            STOPPED["on"] = True; return self._send(200, {"ok": True, "emergency_stopped": True})
+        if u.path == "/emergency/resume":
+            STOPPED["on"] = False; return self._send(200, {"ok": True, "emergency_stopped": False})
+        if STOPPED["on"] and u.path.startswith("/hand/"):
+            return self._send(423, {"detail": "🛑 EMERGENCY STOP فعال است — اول Resume کنید"})
         if u.path == "/hand/shortcut":
             keys = str(b.get("keys","")).strip()
             if not keys or not KEY_RE.match(keys): return self._send(400, {"detail": "کلید نامعتبر است؛ مثال: ctrl+l"})
