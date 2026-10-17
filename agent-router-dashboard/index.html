@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AgentRouter Hub — داشبورد مدیریت API</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+<style>
+:root{--bg:#070a12;--panel:#0d1322;--panel2:#111a2e;--card:#0f172a;--line:#1e293b;--text:#e5e7eb;--muted:#94a3b8;--brand:#7c3aed;--brand2:#06b6d4;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--radius:18px}
+*{box-sizing:border-box}body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:radial-gradient(1000px 500px at 80% -10%,#312e81 0,transparent 55%),radial-gradient(800px 400px at 0 0,#0e7490 0,transparent 50%),var(--bg);color:var(--text);min-height:100vh}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{background:rgba(13,19,34,.92);border-left:1px solid var(--line);padding:22px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo{display:flex;gap:12px;align-items:center;padding:6px 8px 20px}.mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;font-size:24px;box-shadow:0 10px 30px #7c3aed55}
+.logo b{font-size:18px}.logo span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.nav{display:grid;gap:6px}.nav button{display:flex;gap:10px;align-items:center;width:100%;text-align:right;border:0;background:transparent;color:var(--muted);padding:12px 14px;border-radius:12px}.nav button.active,.nav button:hover{background:#1e293b;color:#fff}
+.sidebox{margin-top:20px;background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px}.sidebox p{color:var(--muted);font-size:12px;line-height:2}
+main{padding:26px;max-width:1500px;width:100%;margin:0 auto}
+.topbar{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+h1{margin:0;font-size:28px} .sub{color:var(--muted);margin-top:6px;font-size:13px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel2);color:#fff;padding:10px 16px;border-radius:12px}.btn.primary{background:linear-gradient(135deg,var(--brand),#4f46e5);border:0}.btn.cyan{background:linear-gradient(135deg,#0891b2,var(--brand2));border:0;color:#04202a;font-weight:700}.btn.danger{background:#450a0a;border-color:#7f1d1d}.btn:disabled{opacity:.5}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.grid2{display:grid;grid-template-columns:1.4fr .9fr;gap:14px;margin-top:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.03),transparent),var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.kpi b{font-size:28px;display:block;margin:8px 0}.kpi span,.muted{color:var(--muted);font-size:13px;line-height:1.9}
+.pill{display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;background:#1e293b}.pill.ok{background:#052e16;color:#86efac}.pill.bad{background:#450a0a;color:#fca5a5}.pill.warn{background:#451a03;color:#fcd34d}
+.page{display:none}.page.active{display:block}
+input,select,textarea{width:100%;background:#0b1220;border:1px solid var(--line);color:#fff;border-radius:12px;padding:11px 12px;outline:none}textarea{min-height:90px;resize:vertical}label{font-size:12px;color:var(--muted);display:block;margin:12px 0 6px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:12px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}th{color:var(--muted);font-weight:500}
+.mono{font-family:ui-monospace,monospace;direction:ltr;text-align:left;font-size:12px;word-break:break-all}
+.chatbox{height:480px;overflow:auto;background:#0b1220;border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px;align-content:start}
+.msg{max-width:86%;padding:12px 14px;border-radius:16px;line-height:2;white-space:pre-wrap;word-break:break-word}.msg.user{background:#312e81;justify-self:start}.msg.assistant{background:#111827;border:1px solid var(--line);justify-self:end}.msg.system{background:#451a03}
+.modal{position:fixed;inset:0;background:#000a;display:none;place-items:center;z-index:50;padding:16px}.modal.open{display:grid}.dialog{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px;width:min(560px,100%);max-height:90vh;overflow:auto}
+.toast{position:fixed;bottom:20px;left:20px;background:#111827;border:1px solid var(--line);padding:12px 16px;border-radius:12px;display:none;z-index:99;max-width:90vw}
+canvas{width:100%;height:220px}
+.code{background:#020617;border:1px solid var(--line);border-radius:14px;padding:14px;overflow:auto;direction:ltr;text-align:left;font-family:monospace;font-size:12px;line-height:1.8;white-space:pre}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}aside{position:static;height:auto}.grid,.grid2,.grid3{grid-template-columns:1fr}main{padding:16px}.msg{max-width:95%}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside>
+  <div class="logo"><div class="mark">⬡</div><div><b>AgentRouter Hub</b><span>داشبورد یکپارچه API</span></div></div>
+  <nav class="nav" id="nav">
+    <button data-page="dashboard" class="active">📊 داشبورد</button>
+    <button data-page="keys">🔑 کلیدهای API</button>
+    <button data-page="models">🤖 مدل‌ها</button>
+    <button data-page="playground">💬 آزمایشگاه چت</button>
+    <button data-page="history">🕘 تاریخچه چت</button>
+    <button data-page="logs">📜 لاگ درخواست‌ها</button>
+    <button data-page="snippets">🧩 نمونه‌کدها</button>
+    <button data-page="agent">🤖 ایجنت و روتینگ مدل‌ها</button>
+    <button data-page="activity">📡 فعالیت زنده ایجنت</button>
+    <button data-page="modules">🧩 ماژول‌ها</button>
+    <button data-page="perms">🔐 دسترسی‌ها و پروفایل‌ها</button>
+    <button data-page="memory">🧠 حافظه و مهارت‌ها</button>
+    <button data-page="eyehand">👁️⌨️ چشم و دست</button>
+    <button data-page="settings">⚙️ تنظیمات</button>
+  </nav>
+  <div class="sidebox"><b>🔒 امنیت کلیدها</b><p>کلیدها فقط داخل مرورگر شما (LocalStorage) ذخیره می‌شوند و جز به آدرس AgentRouter ارسال نمی‌شوند. برای استفاده اشتراکی، حتماً از کلید جدا استفاده کنید.</p></div>
+  <div class="sidebox"><b>وضعیت سرویس</b><p id="sideStatus">هنوز تستی انجام نشده</p><button class="btn" style="width:100%" onclick="testActive(true)">تست اتصال</button></div>
+</aside>
+
+<main>
+  <div class="topbar">
+    <div><h1 id="pageTitle">داشبورد</h1><div class="sub">مدیریت، تست و مانیتورینگ APIهای Agent Router — سازگار با OpenAI API</div></div>
+    <div class="row">
+      <select id="activeKeySelect" style="width:260px"></select>
+      <button class="btn cyan" onclick="openKeyModal()">+ افزودن کلید</button>
+      <button class="btn" onclick="toggleTheme()">🌗 تم</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section class="page active" id="page-dashboard">
+    <div class="grid">
+      <div class="card kpi"><span>کلیدهای فعال</span><b id="kKeys">0</b><span id="kKeysSub">—</span></div>
+      <div class="card kpi"><span>مدل‌های در دسترس</span><b id="kModels">—</b><span>از آخرین همگام‌سازی</span></div>
+      <div class="card kpi"><span>کل درخواست‌ها</span><b id="kReq">0</b><span id="kReqSub">در این مرورگر</span></div>
+      <div class="card kpi"><span>توکن مصرفی</span><b id="kTokens">0</b><span>ورودی + خروجی</span></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="row" style="justify-content:space-between"><b>📈 روند مصرف توکن</b><button class="btn" onclick="seedDemo()">حالت دمو</button></div><canvas id="chart"></canvas><p class="muted">نمودار بر اساس لاگ‌های واقعی شما رسم می‌شود. اگر تازه شروع کرده‌اید، چند درخواست در آزمایشگاه بفرستید یا «حالت دمو» را بزنید.</p></div>
+      <div class="card"><b>⚡ شروع سریع</b><ol class="muted" style="line-height:2.2;padding-right:18px"><li>از agentrouter.org یک API Key بگیرید.</li><li>با دکمه «افزودن کلید» آن را اضافه کنید.</li><li>روی «تست و همگام‌سازی مدل‌ها» بزنید.</li><li>در آزمایشگاه چت، مدل را انتخاب و گفتگو کنید.</li></ol><div class="row"><button class="btn primary" onclick="go('keys')">مدیریت کلیدها</button><button class="btn" onclick="go('playground')">رفتن به چت</button></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><b>آخرین درخواست‌ها</b><div id="recentLogs" style="margin-top:10px"></div></div>
+  </section>
+
+  <!-- KEYS -->
+  <section class="page" id="page-keys">
+    <div class="card"><div class="row" style="justify-content:space-between"><b>کلیدهای API</b><button class="btn primary" onclick="openKeyModal()">+ کلید جدید</button></div>
+    <p class="muted">Base URL پیش‌فرض: <span class="mono">https://agentrouter.org/v1</span> — در صورت داشتن آدرس اختصاصی می‌توانید برای هر کلید جداگانه تغییرش دهید.</p><div id="keysTable"></div></div>
+  </section>
+
+  <!-- MODELS -->
+  <section class="page" id="page-models">
+    <div class="card"><div class="row" style="justify-content:space-between"><b>مدل‌های در دسترس</b><div class="row"><input id="modelSearch" placeholder="جستجوی مدل..." style="width:240px" oninput="renderModels()"><button class="btn primary" onclick="syncModels()">↻ همگام‌سازی</button></div></div><div id="modelsGrid" class="grid3" style="margin-top:14px"></div></div>
+  </section>
+
+  <!-- PLAYGROUND -->
+  <section class="page" id="page-playground">
+    <div class="grid2" style="grid-template-columns:1fr 320px">
+      <div class="card"><div class="row" style="justify-content:space-between"><b>آزمایشگاه چت (Streaming)</b><div class="row"><button class="btn" onclick="exportChat()">خروجی</button><button class="btn danger" onclick="clearChat()">پاک‌کردن</button></div></div>
+        <div class="chatbox" id="chatBox" style="margin-top:12px"></div>
+        <div class="row" style="margin-top:12px"><textarea id="chatInput" placeholder="پیام خود را بنویسید... (Ctrl+Enter برای ارسال)" style="flex:1;min-height:52px"></textarea><button class="btn primary" id="sendBtn" onclick="sendChat()">ارسال ➤</button><button class="btn danger" id="stopBtn" onclick="stopStream()" disabled>توقف</button></div>
+      </div>
+      <div class="card"><b>تنظیمات مدل</b>
+        <label>مدل</label><select id="modelSelect"></select>
+        <label>System Prompt</label><textarea id="sysPrompt">You are a helpful assistant. Answer in the user's language.</textarea>
+        <label>Temperature: <span id="tempVal">0.7</span></label><input type="range" id="temp" min="0" max="2" step="0.1" value="0.7" oninput="tempVal.textContent=this.value">
+        <label>Max Tokens</label><input type="number" id="maxTokens" value="2048">
+        <label>حالت پاسخ</label><select id="streamMode"><option value="1">Streaming (زنده)</option><option value="0">معمولی</option></select>
+        <label>افزودن پیام سیستمی به تاریخچه</label><select id="keepSys"><option value="1">بله</option><option value="0">خیر</option></select>
+        <p class="muted">توکن و زمان پاسخ بعد از هر درخواست در داشبورد و لاگ ثبت می‌شود.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY / LOGS / SNIPPETS / SETTINGS -->
+  <section class="page" id="page-history"><div class="card"><div class="row" style="justify-content:space-between"><b>تاریخچه مکالمات</b><button class="btn danger" onclick="if(confirm('همه پاک شود؟')){state.history=[];save();renderHistory()}">پاک‌کردن همه</button></div><div id="historyList"></div></div></section>
+  <section class="page" id="page-logs"><div class="card"><div class="row" style="justify-content:space-between"><b>لاگ درخواست‌ها</b><div class="row"><button class="btn" onclick="exportLogs()">دانلود JSON</button><button class="btn danger" onclick="if(confirm('پاک شود؟')){state.logs=[];save();renderAll()}">پاک‌کردن</button></div></div><div id="logsTable"></div></div></section>
+  <section class="page" id="page-snippets"><div class="grid"><div class="card" style="grid-column:span 2"><b>cURL</b><pre class="code" id="codeCurl"></pre><button class="btn" onclick="copyText(codeCurl.textContent)">کپی</button></div><div class="card" style="grid-column:span 2"><b>Python</b><pre class="code" id="codePy"></pre><button class="btn" onclick="copyText(codePy.textContent)">کپی</button></div><div class="card" style="grid-column:span 2"><b>JavaScript</b><pre class="code" id="codeJs"></pre><button class="btn" onclick="copyText(codeJs.textContent)">کپی</button></div><div class="card" style="grid-column:span 2"><b>تنظیمات پیشنهادی</b><p class="muted">کلید فعال و مدل انتخاب‌شده به‌صورت خودکار داخل نمونه‌کدها قرار می‌گیرد (کلید به‌صورت ماسک‌شده نمایش داده می‌شود؛ هنگام کپی در محیط امن خودتان جایگزین کنید).</p></div></div></section>
+  <!-- EYE & HAND -->
+  <section class="page" id="page-eyehand">
+    <div class="card">
+      <b>🔀 چشم و دست به چه کسی وصل‌اند؟</b>
+      <p class="muted">چشم → <b>Parser (بدون مدل)</b> → خلاصه ساخت‌یافته → اگر لازم بود <b>مترجم</b> (فقط متن داخل خلاصه را انگلیسی می‌کند) → <b>مدل اصلی تصمیم‌گیر (مثل DeepSeek R1)</b> که ACTION می‌دهد → ACTION بدون ترجمه و پس از اعتبارسنجی+اجازه شما → <b>دست</b>. توضیح تصمیم برای شما برعکس همین مسیر را با مترجم فارسی می‌شود. <b>مترجم هرگز دست را کنترل نمی‌کند.</b></p>
+      <div class="row"><label style="margin:0">مدل تصمیم‌گیر چشم:</label><select id="eyeDecisionModel" style="flex:1;width:auto"></select><button class="btn primary" onclick="runEyeDecision()">🤖 تحلیل چشم با مدل تصمیم‌گیر</button></div>
+      <hr style="border-color:var(--line);margin:16px 0">
+      <b>👁️ چشم — اول لاگ صفحه، دوربین فقط عنداللزوم</b>
+      <p class="muted">ترتیب سرعت: <b>۱) لاگ صفحه (سریع‌ترین)</b> ← ۲) خلاصه DOM/متن صفحه ← ۳) اسکرین‌شات ← ۴) دوربین (فقط وقتی لاگ چیزی نشان نمی‌دهد). خامِ کامل برای مدل ارسال نمی‌شود؛ اول همین‌جا خلاصه و dedupe می‌شود تا هم سریع باشد هم توکن کم مصرف شود.</p>
+      <div class="grid3">
+        <div><label>منبع چشم</label><select id="eyeSource" onchange="eyeSourceChanged()"><option value="log">📜 لاگ صفحه (پیش‌فرض و سریع)</option><option value="dom">🌐 خلاصه DOM / HTML صفحه</option><option value="screenshot">🖼️ اسکرین‌شات (در صورت نیاز)</option><option value="camera">📷 دوربین (در صورت نیاز)</option></select></div>
+        <div><label>مسیر فایل لاگ روی اوبونتو</label><input id="eyeLogPath" dir="ltr" value="/tmp/page.log"></div>
+        <div><label>آدرس سرویس اوبونتو</label><input id="ehBackend" dir="ltr" value="http://127.0.0.1:8765"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <label class="btn" style="cursor:pointer">📂 بارگذاری فایل لاگ / HTML / اسکرین‌شات<input type="file" id="eyeFile" hidden accept=".log,.txt,.json,.html,.htm,.png,.jpg,.jpeg,.webp" onchange="eyeFileLoaded(this)"></label>
+        <button class="btn primary" onclick="fetchLogFromUbuntu()">↻ خواندن زنده لاگ از اوبونتو</button>
+        <button class="btn" onclick="startCamera()">📷 روشن‌کردن دوربین</button>
+        <button class="btn danger" onclick="stopCamera()">خاموش</button>
+        <span class="pill warn" id="eyeStatus">چشم: لاگ صفحه</span>
+      </div>
+      <label>متن لاگ / DOM (می‌توانید Paste هم بکنید)</label>
+      <textarea id="eyeRaw" dir="ltr" style="min-height:120px;text-align:left" placeholder='{"type":"page","url":"https://...","title":"...","buttons":["Login"],"inputs":["email"],"errors":[]}'></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn cyan" onclick="parseEye()">⚡ Parse و خلاصه‌سازی (بدون مدل)</button><button class="btn primary" onclick="askModelEye()">🤖 پرسیدن از مدل با خلاصه چشم</button><input id="eyeGoal" style="flex:1;width:auto" placeholder="هدف عامل: مثلاً فرم لاگین را پیدا و آماده ورود کن"></div>
+      <div class="grid2">
+        <div><label>خلاصه ساخت‌یافته چشم (همین برای مدل می‌رود)</label><pre class="code" id="eyeSummary" style="min-height:180px">هنوز چیزی Parse نشده.</pre></div>
+        <div><label>تصمیم مدل / تصویر عنداللزوم</label><video id="eyeVideo" autoplay playsinline style="width:100%;border-radius:14px;display:none;background:#000"></video><canvas id="eyeCanvas" style="width:100%;border-radius:14px;display:none"></canvas><img id="eyeImg" style="width:100%;border-radius:14px;display:none"><p class="muted" id="eyeAnswer">تصمیم مدل اینجا نمایش داده می‌شود؛ Shortcut پیشنهادی داخل کادر Shortcut سفارشی قرار می‌گیرد تا اول خودتان تأیید و اجرا کنید.</p></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <b>⌨️ دست — اول Shortcut، کلیک فقط عنداللزوم</b>
+      <p class="muted">دستورها از طریق سرویس اوبونتو با <span class="mono">xdotool key</span> اجرا می‌شوند. اگر اوبونتو/X در دسترس نباشد، حالت شبیه‌سازی فعال می‌شود و دستور فقط لاگ می‌شود.</p>
+      <div class="grid3" id="shortcutGrid"></div>
+      <div class="grid2">
+        <div><label>Shortcut سفارشی (فرمت xdotool)</label><div class="row"><input id="customShortcut" dir="ltr" placeholder="ctrl+shift+t" style="flex:1;width:auto"><button class="btn primary" onclick="sendShortcut(document.getElementById('customShortcut').value)">اجرا</button></div>
+        <label>تایپ متن</label><div class="row"><input id="typeText" placeholder="متنی که تایپ شود..." style="flex:1;width:auto"><button class="btn" onclick="sendType()">تایپ کن</button></div>
+        <label>ماکرو (هر خط: key:ctrl+l یا type:hello یا sleep:500)</label><textarea id="macroText" dir="ltr" style="text-align:left">key:ctrl+l
+type:agentrouter.org
+key:Return
+sleep:800</textarea><button class="btn cyan" onclick="runMacro()">▶ اجرای ماکرو</button></div>
+        <div><label>آخرین فرمان دست</label><pre class="code" id="handLog" style="min-height:160px">—</pre><button class="btn" onclick="checkEH()">بررسی اتصال سرویس اوبونتو</button> <span id="ehStatus" class="pill warn">بررسی نشده</span>
+        <p class="muted">⚠️ اجرای خودکار پیشنهاد مدل عمداً خاموش است؛ اول انسان تأیید می‌کند، بعد Shortcut اجرا می‌شود.</p></div>
+      </div>
+    </div>
+  </section>
+    <div class="card" style="margin-top:14px" id="mouseModuleCard">
+      <b>🖱️ ماژول ماوس (عنداللزوم — نیازمند دسترسی «حرکت ماوس»)</b>
+      <p class="muted">اصل با Shortcut است؛ ماوس فقط وقتی میانبر جواب نمی‌دهد. مختصات مطلق روی صفحه اوبونتو:</p>
+      <div class="row"><input id="mouseX" type="number" value="500" style="width:110px"><input id="mouseY" type="number" value="400" style="width:110px">
+      <button class="btn" onclick="sendMouse('move')">حرکت</button><button class="btn primary" onclick="sendMouse('click')">کلیک</button><button class="btn" onclick="sendMouse('double')">دبل‌کلیک</button><button class="btn" onclick="sendMouse('right')">راست‌کلیک</button></div>
+    </div>
+  <!-- MEMORY & SKILLS -->
+  <section class="page" id="page-memory">
+    <div class="grid">
+      <div class="card kpi"><span>مهارت‌های یادگرفته‌شده</span><b id="mSkills">0</b><span>روتین‌هایی که بدون مغز انجام می‌شوند</span></div>
+      <div class="card kpi"><span>دفعات دورزدن مغز</span><b id="mSaved">0</b><span>یعنی چند بار مدل اصلی صدا زده نشد</span></div>
+      <div class="card kpi"><span>تجربه‌های ثبت‌شده</span><b id="mExp">0</b><span>کارهایی که ایجنت انجام داده</span></div>
+      <div class="card kpi"><span>موفقیت مهارت‌ها</span><b id="mRate">—</b><span>موفق / کل اجراها</span></div>
+    </div>
+    <div class="card" style="margin-top:14px"><b>🧠 مهارت‌ها (روتین‌های آموخته‌شده)</b>
+      <p class="muted">چطور یاد می‌گیرد؟ وقتی چشم یک وضعیت صفحه را می‌بیند، مدل تصمیم می‌گیرد و شما ACTION را اجرا و نتیجه را تأیید می‌کنید، آن وضعیت+عمل به‌صورت «مهارت» ذخیره می‌شود. دفعه بعد همان وضعیت، داشبورد مهارت را پیشنهاد می‌دهد و <b>اصلاً مدل اصلی صدا زده نمی‌شود</b> — مگر خودتان بگویید «از مغز بپرس». مهارتِ با حداقل ۱ اجرای موفق، «قابل اعتماد» می‌شود.</p>
+      <div class="row"><input id="skillName" placeholder="نام مهارت دستی..." style="flex:1;width:auto"><input id="skillUrl" placeholder="الگوی URL (مثلاً /login)" dir="ltr" style="flex:1;width:auto"><button class="btn cyan" onclick="createSkillFromMacro()">ساخت مهارت از ماکروی تب چشم‌ودست</button></div>
+      <div id="skillsList" style="display:grid;gap:10px;margin-top:12px"></div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><b>📚 دفتر تجربه‌ها</b><button class="btn danger" onclick="if(confirm('همه تجربه‌ها و مهارت‌ها پاک شود؟')){state.skills=[];state.experiences=[];save();renderMemory()}">پاک‌کردن حافظه</button></div>
+      <div id="expList" style="display:grid;gap:8px;margin-top:10px"></div></div>
+  </section>
+
+  <!-- AGENT -->
+  <section class="page" id="page-agent">
+    <div class="card"><b>🤖 ایجنت دو مدله — اشتراک API + Ollama با مترجم واسط</b>
+      <p class="muted">مثال: سؤال فارسی شما ← <b>مدل مترجم</b> (فارسی↔انگلیسی) ← <b>مدل اصلی</b> مثل DeepSeek R1 که فارسی بلد نیست ← جواب انگلیسی ← مترجم ← پاسخ فارسی. هر مرحله زنده در تب «فعالیت زنده» دیده می‌شود. اگر متن فارسی نباشد، ترجمه خودکار رد می‌شود.</p>
+      <div class="grid3">
+        <div><label>مدل اصلی (استدلال)</label><select id="mainModel"></select></div>
+        <div><label>مدل مترجم</label><select id="translatorModel"></select></div>
+        <div><label>حالت ترجمه</label><select id="translateMode"><option value="auto">خودکار (فقط اگر فارسی بود)</option><option value="always">همیشه</option><option value="off">خاموش — مستقیم به مدل اصلی</option></select></div>
+      </div>
+      <div class="row" style="margin-top:12px"><label style="margin:0"><input type="checkbox" id="agentSearch" style="width:auto"> 🌐 اول در اینترنت جستجو کن (نیازمند دسترسی جستجو)</label>
+      <button class="btn" onclick="refreshAllModels()">↻ بارگذاری مدل‌های API + Ollama</button><span id="ollamaStatus" class="pill warn">Ollama: بررسی نشده</span></div>
+      <label>سؤال / دستور شما (فارسی بنویسید)</label><textarea id="agentInput" style="min-height:80px" placeholder="مثلاً: الگوریتم مرتب‌سازی سریع را با مثال توضیح بده"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="agentRunBtn" onclick="runAgent()">▶ اجرای ایجنت</button><span class="muted">مراحل: ترجمه ورودی → (جستجو) → مدل اصلی → ترجمه خروجی</span></div>
+      <div class="grid3" style="margin-top:14px">
+        <div><label>۱) ترجمه ورودی (EN)</label><pre class="code" id="stageT1" style="min-height:110px">—</pre></div>
+        <div><label>۲) پاسخ مدل اصلی</label><pre class="code" id="stageMain" style="min-height:110px">—</pre></div>
+        <div><label>۳) پاسخ نهایی فارسی</label><pre class="code" id="stageFinal" style="min-height:110px">—</pre></div>
+      </div>
+      <div id="agentSearchResults" style="margin-top:10px"></div>
+    </div>
+    <div class="card" style="margin-top:14px"><b>⚙️ اتصال Ollama (محلی روی اوبونتو)</b>
+      <div class="row"><input id="ollamaBase" dir="ltr" value="http://127.0.0.1:11434" style="flex:1;width:auto"><button class="btn primary" onclick="testOllama()">تست و دریافت مدل‌ها</button></div>
+      <p class="muted">نصب روی اوبونتو ۲۲.۰۴: <span class="mono">curl -fsSL https://ollama.com/install.sh | sh && ollama pull qwen2.5:7b</span> — برای دسترسی مرورگر: <span class="mono">OLLAMA_ORIGINS=* ollama serve</span></p>
+    </div>
+  </section>
+
+  <!-- AGENT CHAIN (inside agent page flow, rendered as its own card via section) -->
+  <section class="page" id="page-chain" style="display:none"></section>
+  <div class="card" style="margin:14px 26px 0" id="chainCard">
+      <b>⛓️ زنجیره ایجنت‌ها — خروجی هر ایجنت، ورودی بعدی است</b>
+      <p class="muted">پریست‌ها: «ترجمه+DeepSeek» • «چشم ← تحلیل ← پیشنهاد دست» • «جستجو ← تحلیل ← نقد». هر قدم مدل و نقش جدا دارد و در فعالیت زنده دیده می‌شود. قدم «پیشنهاد دست» هیچ‌وقت خودش اجرا نمی‌کند؛ ACTION فقط داخل کادر Shortcut قرار می‌گیرد تا شما اجرا کنید.</p>
+      <div class="row"><select id="chainPreset" style="flex:1;width:auto">
+        <option value="translate">🔤 مترجم → DeepSeek (اصلی) → مترجم</option>
+        <option value="eye">👁️ چشم (خلاصه لاگ) → مدل تصمیم‌گیر → پیشنهاد Shortcut</option>
+        <option value="research">🌐 جستجو → تحلیل‌گر → منتقد</option>
+      </select><button class="btn" onclick="loadChainPreset()">بارگذاری پریست</button>
+      <button class="btn" onclick="addChainStep()">+ قدم جدید</button>
+      <button class="btn primary" onclick="runChain()">▶ اجرای زنجیره</button></div>
+      <div id="chainSteps" style="display:grid;gap:10px;margin-top:12px"></div>
+      <label>ورودی زنجیره (اگر خالی باشد از سؤال ایجنت / خلاصه چشم استفاده می‌شود)</label>
+      <textarea id="chainInput" placeholder="ورودی قدم اول..."></textarea>
+      <label>خروجی نهایی زنجیره</label><pre class="code" id="chainOutput" style="min-height:120px">—</pre>
+  </div>
+
+  <!-- ACTIVITY -->
+  <section class="page" id="page-activity">
+    <div class="card"><div class="row" style="justify-content:space-between"><b>📡 فعالیت زنده — مدل/ایجنت الان دارد چه کار می‌کند؟</b><div class="row"><select id="actFilter" onchange="renderActivities()" style="width:180px"><option value="">همه ماژول‌ها</option><option>agent</option><option>translator</option><option>search</option><option>eye</option><option>hand</option><option>provider</option><option>permission</option></select><button class="btn danger" onclick="clearActivities()">پاک‌کردن</button></div></div>
+      <div class="row" style="margin-top:12px"><span class="pill warn" id="agentLiveStatus">ایجنت: بیکار</span><span class="muted" id="actSummary"></span></div>
+      <div id="activityList" style="margin-top:12px;display:grid;gap:8px"></div>
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section class="page" id="page-modules">
+    <div class="card"><b>🧩 ماژول‌ها — هر قابلیت جدا، فقط عنداللزوم روشن شود</b>
+      <p class="muted">خاموش‌کردن یک ماژول، همه مسیرهای مرتبطش را می‌بندد. روشن‌کردنش اگر دسترسی لازم را نداشته باشد، اول از شما اجازه می‌خواهد.</p>
+      <div class="grid3" id="modulesGrid" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- PERMISSIONS -->
+  <section class="page" id="page-perms">
+    <div class="card"><b>🔐 پروفایل‌های دسترسی — یک نام، یک انتخاب، دسترسی آماده برای ایجنت</b>
+      <div class="row" style="margin-top:10px"><select id="profileSelect" style="flex:1;width:auto"></select><button class="btn primary" onclick="applySelectedProfile()">اعمال پروفایل انتخاب‌شده</button><button class="btn danger" onclick="deleteCustomProfile()">حذف پروفایل سفارشی</button>
+      <button class="btn" onclick="exportProfiles()">⬇️ خروجی پروفایل‌ها (JSON)</button>
+      <label class="btn" style="cursor:pointer">⬆️ ورود پروفایل‌ها<input type="file" hidden accept=".json" onchange="importProfiles(this)"></label></div>
+      <p class="muted" id="activeProfileLabel">پروفایل فعال: —</p>
+      <div class="grid2"><div><label>ساخت پروفایل جدید از وضعیت فعلی دسترسی‌های پایین</label><div class="row"><input id="newProfileName" placeholder="مثلاً: تحقیق اینترنتی امن" style="flex:1;width:auto"><button class="btn cyan" onclick="saveCustomProfile()">ذخیره پروفایل</button></div></div>
+      <div><label>پروفایل‌های آماده</label><p class="muted">👀 «فقط مشاهده» • ⌨️ «مرورگر با Shortcut» • 🌐 «تحقیق اینترنتی» • 🖱️ «کنترل کامل اوبونتو (خطرناک)»</p></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><b>دسترسی‌های تکی (دستی هم می‌توانید هرکدام را روشن/خاموش کنید)</b><div id="permsList" style="margin-top:10px;display:grid;gap:8px"></div></div>
+  </section>
+
+  <section class="page" id="page-settings"><div class="card"><b>تنظیمات عمومی</b>
+    <label>Base URL پیش‌فرض برای کلیدهای جدید</label><input id="defaultBase" value="https://agentrouter.org/v1">
+    <label>مهلت درخواست (ثانیه)</label><input id="timeoutSec" type="number" value="120">
+    <div class="row" style="margin-top:16px"><button class="btn primary" onclick="saveSettings()">ذخیره</button><button class="btn" onclick="exportBackup()">بکاپ‌گیری (JSON)</button><label class="btn" style="cursor:pointer">بازیابی بکاپ<input type="file" hidden onchange="importBackup(this)"></label><button class="btn danger" onclick="if(confirm('همه داده‌های محلی پاک شود؟')){localStorage.removeItem(LS);location.reload()}">ریست کامل</button></div>
+    <p class="muted">نکته CORS: اگر مرورگر درخواست را مسدود کرد، یعنی سرویس برای دامنه شما CORS را باز نکرده است؛ در این حالت از بک‌اند/پروکسی خودتان استفاده کنید یا Base URL پروکسی را وارد کنید.</p></div></section>
+</main>
+</div>
+
+<!-- KEY MODAL -->
+<div class="modal" id="keyModal"><div class="dialog"><h3 style="margin-top:0">افزودن / ویرایش کلید</h3>
+<input type="hidden" id="kId"><label>نام نمایشی *</label><input id="kName" placeholder="مثلاً: کلید اصلی تیم">
+<label>API Key *</label><input id="kKey" placeholder="sk-..." dir="ltr">
+<label>Base URL</label><input id="kBase" value="https://agentrouter.org/v1" dir="ltr">
+<label>توضیح (اختیاری)</label><input id="kNote" placeholder="برای پروژه...">
+<div class="row" style="margin-top:18px"><button class="btn primary" onclick="saveKey()">ذخیره کلید</button><button class="btn" onclick="closeKeyModal()">انصراف</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LS='ardash_v1';
+let state=JSON.parse(localStorage.getItem(LS)||'{"keys":[],"activeId":null,"models":[],"logs":[],"history":[],"chat":[],"settings":{"base":"https://agentrouter.org/v1","timeout":120}}');
+let ctrl=null;
+const $=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(LS,JSON.stringify(state));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mask=k=>!k?'—':k.slice(0,6)+'••••••••'+k.slice(-4);
+const activeKey=()=>state.keys.find(k=>k.id===state.activeId)||state.keys[0];
+function toast(m){$('toast').textContent=m;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3200)}
+function go(p){document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===p));document.querySelectorAll('.page').forEach(s=>s.classList.toggle('active',s.id==='page-'+p));$('pageTitle').textContent=document.querySelector(`[data-page="${p}"]`).textContent.replace(/^[^ا-یA-Za-z]+/,'');renderAll()}
+$('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.page)};
+function toggleTheme(){document.body.style.filter=document.body.style.filter?'':'invert(1) hue-rotate(180deg)';toast('تم تغییر کرد (برای تجربه بهتر، رفرش کنید اگر به‌هم ریخت)')}
+
+/* KEYS */
+function openKeyModal(k){$('keyModal').classList.add('open');$('kId').value=k?.id||'';$('kName').value=k?.name||'';$('kKey').value=k?.key||'';$('kBase').value=k?.base||state.settings.base;$('kNote').value=k?.note||''}
+function closeKeyModal(){$('keyModal').classList.remove('open')}
+function saveKey(){const name=$('kName').value.trim(),key=$('kKey').value.trim();if(!name||!key)return toast('نام و کلید الزامی است');const id=$('kId').value||'k'+Date.now();const obj={id,name,key,base:$('kBase').value.trim().replace(/\/$/,'')||state.settings.base,note:$('kNote').value,status:'unknown',latency:null,created:Date.now()};const i=state.keys.findIndex(k=>k.id===id);i>=0?state.keys[i]={...state.keys[i],...obj}:state.keys.push(obj);state.activeId=id;save();closeKeyModal();renderAll();toast('کلید ذخیره شد ✅')}
+function delKey(id){if(!confirm('این کلید حذف شود؟'))return;state.keys=state.keys.filter(k=>k.id!==id);if(state.activeId===id)state.activeId=state.keys[0]?.id||null;save();renderAll()}
+function setActive(id){state.activeId=id;save();renderAll();toast('کلید فعال تغییر کرد')}
+async function fetchWithTimeout(url,opts){const c=new AbortController();const t=setTimeout(()=>c.abort(),(state.settings.timeout||120)*1000);try{return await fetch(url,{...opts,signal:c.signal})}finally{clearTimeout(t)}}
+async function testKey(k,silent){const t0=performance.now();try{const r=await fetchWithTimeout(k.base+'/models',{headers:{Authorization:'Bearer '+k.key}});k.latency=Math.round(performance.now()-t0);k.status=r.ok?'ok':'bad';if(r.ok){const j=await r.json();k.models=(j.data||[]).map(m=>m.id);if(k.id===activeKey()?.id)state.models=k.models} else k.error='HTTP '+r.status;if(!silent)toast(r.ok?`✅ متصل شد — ${k.latency}ms`:'❌ خطا: HTTP '+r.status);logReq(k,'GET /models',r.ok,k.latency,0)}catch(e){k.status='bad';k.latency=Math.round(performance.now()-t0);if(!silent)toast('❌ خطای شبکه/CORS: '+e.message);logReq(k,'GET /models',false,k.latency,0)}save();renderAll()}
+const testActive=s=>{const k=activeKey();if(!k)return toast('اول یک کلید اضافه کنید');testKey(k,!s)};
+async function syncModels(){const k=activeKey();if(!k)return toast('کلیدی نیست');await testKey(k,false)}
+
+/* LOGS / STATS */
+function logReq(k,ep,ok,ms,tokens){state.logs.unshift({id:Date.now()+Math.random(),time:Date.now(),key:k?.name||'—',ep,ok,ms,tokens});state.logs=state.logs.slice(0,500);save()}
+function seedDemo(){const models=['gpt-4o-mini','claude-sonnet-4','deepseek-chat'];for(let i=0;i<28;i++){state.logs.push({id:Math.random(),time:Date.now()-i*36e5*5,key:'دمو',ep:'/chat/completions',ok:Math.random()>.08,ms:400+Math.round(Math.random()*1400),tokens:200+Math.round(Math.random()*2200),model:models[i%3]})}toast('داده دمو ساخته شد (از لاگ‌ها قابل پاک‌کردن است)');save();renderAll()}
+
+/* CHAT */
+function renderChat(){$('chatBox').innerHTML=state.chat.length?state.chat.map(m=>`<div class="msg ${m.role}"><b>${m.role==='user'?'شما':m.role==='assistant'?'دستیار':'سیستم'}:</b>\n${esc(m.content)}</div>`).join(''):'<p class="muted">هنوز پیامی نیست. یک پیام بنویسید و ارسال کنید…</p>';$('chatBox').scrollTop=1e9}
+async function sendChat(){const k=activeKey(),model=$('modelSelect').value,text=$('chatInput').value.trim();if(!k)return toast('اول کلید اضافه کنید');if(!model)return toast('مدل انتخاب نشده — اول مدل‌ها را همگام کنید');if(!text)return;const msgs=[];if($('keepSys').value==='1'&&$('sysPrompt').value.trim())msgs.push({role:'system',content:$('sysPrompt').value.trim()});msgs.push(...state.chat.filter(m=>m.role!=='system'),{role:'user',content:text});state.chat.push({role:'user',content:text});$('chatInput').value='';renderChat();$('sendBtn').disabled=true;$('stopBtn').disabled=false;const t0=performance.now();let answer='',tokens=0;state.chat.push({role:'assistant',content:''});const idx=state.chat.length-1;
+ try{if($('streamMode').value==='1'){ctrl=new AbortController();const r=await fetch(k.base+'/chat/completions',{method:'POST',signal:ctrl.signal,headers:{Authorization:'Bearer '+k.key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:msgs,temperature:+$('temp').value,max_tokens:+$('maxTokens').value,stream:true})});if(!r.ok)throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,300));const reader=r.body.getReader(),dec=new TextDecoder();let buf='';while(true){const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const ln of lines){if(!ln.startsWith('data:'))continue;const d=ln.slice(5).trim();if(d==='[DONE]')break;try{const j=JSON.parse(d);answer+=j.choices?.[0]?.delta?.content||'';if(j.usage)tokens=j.usage.total_tokens||0;state.chat[idx].content=answer;renderChat()}catch{}}}}
+ else{const r=await fetchWithTimeout(k.base+'/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+k.key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:msgs,temperature:+$('temp').value,max_tokens:+$('maxTokens').value})});const j=await r.json();if(!r.ok)throw new Error(j.error?.message||'HTTP '+r.status);answer=j.choices?.[0]?.message?.content||'';tokens=j.usage?.total_tokens||0;state.chat[idx].content=answer}
+ if(!tokens)tokens=Math.ceil((text.length+answer.length)/4);const ms=Math.round(performance.now()-t0);logReq(k,'POST /chat/completions • '+model,true,ms,tokens);state.history.unshift({id:Date.now(),time:Date.now(),model,q:text,a:answer,tokens,ms});state.history=state.history.slice(0,100);toast(`✅ پاسخ در ${ms}ms — ${tokens} توکن`)}
+ catch(e){state.chat[idx].content='❌ خطا: '+e.message;logReq(k,'POST /chat/completions • '+model,false,Math.round(performance.now()-t0),0)}
+ save();$('sendBtn').disabled=false;$('stopBtn').disabled=true;renderAll()}
+function stopStream(){ctrl?.abort();$('stopBtn').disabled=true;$('sendBtn').disabled=false;toast('توقف داده شد')}
+function clearChat(){state.chat=[];save();renderChat()}
+function exportChat(){download('chat.json',JSON.stringify(state.chat,null,2))}
+
+/* RENDER */
+function renderAll(){
+ $('activeKeySelect').innerHTML=state.keys.length?state.keys.map(k=>`<option value="${k.id}" ${k.id===activeKey()?.id?'selected':''}>${esc(k.name)} — ${mask(k.key)}</option>`).join(''):'<option>کلیدی ثبت نشده</option>';
+ $('activeKeySelect').onchange=e=>setActive(e.target.value);
+ const totTok=state.logs.reduce((s,l)=>s+(l.tokens||0),0);
+ $('kKeys').textContent=state.keys.filter(k=>k.status==='ok').length+' / '+state.keys.length;$('kModels').textContent=state.models.length||'—';$('kReq').textContent=state.logs.length;$('kTokens').textContent=totTok.toLocaleString('fa-IR');
+ $('sideStatus').textContent=activeKey()?`${activeKey().name}: ${activeKey().status==='ok'?'✅ سالم':'وضعیت: '+activeKey().status} ${activeKey().latency?activeKey().latency+'ms':''}`:'کلیدی انتخاب نشده';
+ $('keysTable').innerHTML=state.keys.length?`<table><tr><th>نام</th><th>کلید</th><th>Base URL</th><th>وضعیت</th><th>عملیات</th></tr>${state.keys.map(k=>`<tr><td><b>${esc(k.name)}</b><br><span class="muted">${esc(k.note||'')}</span></td><td class="mono">${mask(k.key)}</td><td class="mono">${esc(k.base)}</td><td><span class="pill ${k.status}">${k.status==='ok'?'سالم':k.status==='bad'?'خطا':'نامشخص'}</span> ${k.latency?k.latency+'ms':''}</td><td><div class="row"><button class="btn" onclick="setActive('${k.id}')">فعال</button><button class="btn" onclick='testKey(state.keys.find(x=>x.id==="${k.id}"))'>تست</button><button class="btn" onclick='openKeyModal(state.keys.find(x=>x.id==="${k.id}"))'>ویرایش</button><button class="btn" onclick="copyText('${''}'+state.keys.find(x=>x.id==='${k.id}').key)">کپی کلید</button><button class="btn danger" onclick="delKey('${k.id}')">حذف</button></div></td></tr>`).join('')}</table>`:'<p class="muted">هنوز کلیدی ندارید.</p>';
+ const q=($('modelSearch').value||'').toLowerCase();const ms=state.models.filter(m=>m.toLowerCase().includes(q));
+ $('modelsGrid').innerHTML=ms.length?ms.map(m=>`<div class="card"><b class="mono">${esc(m)}</b><p class="muted">${m.includes('gpt')?'OpenAI خانواده':m.includes('claude')?'Anthropic خانواده':m.includes('deepseek')?'DeepSeek':'مدل سازگار با OpenAI API'}</p><div class="row"><button class="btn primary" onclick="useModel('${esc(m)}')">استفاده در چت</button><button class="btn" onclick="copyText('${esc(m)}')">کپی نام</button></div></div>`).join(''):'<p class="muted">مدلی نیست — کلید را تست/همگام کنید.</p>';
+ $('modelSelect').innerHTML=state.models.map(m=>`<option>${esc(m)}</option>`).join('')||'<option value="">مدلی همگام نشده</option>';
+ $('recentLogs').innerHTML=logsHtml(state.logs.slice(0,6));$('logsTable').innerHTML=logsHtml(state.logs);
+ $('historyList').innerHTML=state.history.length?state.history.map(h=>`<div class="card" style="margin-top:10px"><b>${esc(h.model)}</b> <span class="muted">${new Date(h.time).toLocaleString('fa-IR')} • ${h.tokens} توکن • ${h.ms}ms</span><p><b>پرسش:</b> ${esc(h.q)}</p><p class="muted">${esc((h.a||'').slice(0,600))}</p><button class="btn" onclick="copyText(state.history.find(x=>x.id===${h.id}).a)">کپی پاسخ</button></div>`).join(''):'<p class="muted">مکالمه‌ای ثبت نشده.</p>';
+ renderSnippets();renderChat();drawChart();
+}
+function logsHtml(a){return a.length?`<table><tr><th>زمان</th><th>کلید</th><th>درخواست</th><th>وضعیت</th><th>زمان</th><th>توکن</th></tr>${a.map(l=>`<tr><td>${new Date(l.time).toLocaleString('fa-IR')}</td><td>${esc(l.key)}</td><td class="mono">${esc(l.ep)}</td><td><span class="pill ${l.ok?'ok':'bad'}">${l.ok?'موفق':'خطا'}</span></td><td>${l.ms}ms</td><td>${l.tokens||0}</td></tr>`).join('')}</table>`:'<p class="muted">لاگی نیست.</p>'}
+function useModel(m){$('modelSelect').value=m;go('playground');toast('مدل انتخاب شد: '+m)}
+function renderSnippets(){const k=activeKey(),base=k?.base||state.settings.base,model=$('modelSelect')?.value||state.models[0]||'gpt-4o-mini',key=k?mask(k.key):'YOUR_API_KEY';
+ $('codeCurl').textContent=`curl ${base}/chat/completions \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model}","messages":[{"role":"user","content":"سلام!"}]}'`;
+ $('codePy').textContent=`from openai import OpenAI\nclient = OpenAI(base_url="${base}", api_key="${key}")\nresp = client.chat.completions.create(model="${model}", messages=[{"role":"user","content":"سلام!"}])\nprint(resp.choices[0].message.content)`;
+ $('codeJs').textContent=`import OpenAI from "openai";\nconst client = new OpenAI({ baseURL: "${base}", apiKey: "${key}", dangerouslyAllowBrowser: true });\nconst resp = await client.chat.completions.create({ model: "${model}", messages: [{role:"user",content:"سلام!"}] });\nconsole.log(resp.choices[0].message.content);`}
+function drawChart(){const c=$('chart');if(!c)return;const x=c.getContext('2d');c.width=c.offsetWidth*2;c.height=440;x.scale(2,2);const W=c.offsetWidth,H=220;x.clearRect(0,0,W,H);const days=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d});const vals=days.map(d=>state.logs.filter(l=>new Date(l.time).toDateString()===d.toDateString()).reduce((s,l)=>s+(l.tokens||0),0));const max=Math.max(...vals,1);x.strokeStyle='#334155';x.beginPath();vals.forEach((v,i)=>{const px=30+i*(W-50)/6,py=H-30-(v/max)*(H-60);i?x.lineTo(px,py):x.moveTo(px,py)});x.strokeStyle='#06b6d4';x.lineWidth=2.5;x.stroke();x.fillStyle='#94a3b8';x.font='11px Vazirmatn';days.forEach((d,i)=>x.fillText(d.toLocaleDateString('fa-IR',{weekday:'short'}),20+i*(W-50)/6,H-8));vals.forEach((v,i)=>{if(v)x.fillText(v.toLocaleString(),20+i*(W-50)/6,H-40-(v/max)*(H-60))})}
+/* ===== EYE (log-first) & HAND (shortcut-first) ===== */
+const ehBase=()=>($('ehBackend').value||'http://127.0.0.1:8765').replace(/\/$/,'');
+let eyeImageData=null, eyeParsed=null, camStream=null;
+const SHORTCUTS=[['ctrl+l','🌐 نوار آدرس'],['ctrl+t','➕ تب جدید'],['ctrl+w','✖ بستن تب'],['ctrl+shift+t','↩️ بازگردانی تب'],['ctrl+r','🔄 رفرش'],['ctrl+f','🔎 جستجو در صفحه'],['Tab','⭾ فیلد بعدی'],['shift+Tab','⬆ فیلد قبلی'],['Return','⏎ Enter'],['Escape','⎋ لغو'],['ctrl+a','▦ انتخاب همه'],['ctrl+c','📋 کپی'],['ctrl+v','📌 Paste'],['ctrl+s','💾 ذخیره'],['alt+Tab','🔀 سوییچ پنجره'],['super','🪟 منوی اوبونتو']];
+function renderShortcuts(){$('shortcutGrid').innerHTML=SHORTCUTS.map(([k,l])=>`<button class="btn" onclick="sendShortcut('${k}')"><span class="mono">${k}</span><br><small>${l}</small></button>`).join('')}
+function eyeSourceChanged(){const v=$('eyeSource').value;$('eyeStatus').textContent='چشم: '+$('eyeSource').selectedOptions[0].textContent;['eyeVideo','eyeCanvas','eyeImg'].forEach(id=>$(id).style.display='none');if(v==='camera')$('eyeVideo').style.display='block';if(v==='screenshot'||v==='camera')toast('حالت تصویری فقط وقتی لاگ کافی نیست')}
+async function eyeFileLoaded(inp){const f=inp.files[0];if(!f)return;if(f.type.startsWith('image/')){$('eyeSource').value='screenshot';const r=new FileReader();r.onload=()=>{eyeImageData=r.result;$('eyeImg').src=eyeImageData;$('eyeImg').style.display='block';$('eyeSummary').textContent='اسکرین‌شات بارگذاری شد ('+Math.round(f.size/1024)+'KB)'};r.readAsDataURL(f);return}$('eyeRaw').value=(await f.text()).slice(0,300000);parseEye();toast('فایل خوانده و Parse شد ✅')}
+async function fetchLogFromUbuntu(){try{const r=await fetch(ehBase()+'/eye/log?path='+encodeURIComponent($('eyeLogPath').value)+'&lines=300');const j=await r.json();if(!r.ok)throw new Error(j.detail||r.status);$('eyeRaw').value=j.content;parseEye();toast('لاگ زنده از اوبونتو خوانده شد ⚡')}catch(e){toast('سرویس اوبونتو نیست: '+e.message)}}
+function parseEye(){const raw=$('eyeRaw').value.trim();if(!raw)return toast('اول لاگ/DOM وارد کنید');let pages=[];raw.split(/\n+/).forEach(ln=>{try{const j=JSON.parse(ln);if(j.type==='page'||j.url||j.title)pages.push(j)}catch{}});let summary;
+ if(pages.length){const p=pages[pages.length-1];summary={source:'page-log',url:p.url||null,title:p.title||null,buttons:(p.buttons||[]).slice(0,30),links:(p.links||[]).slice(0,30),inputs:(p.inputs||[]).slice(0,30),errors:(p.errors||[]).slice(0,20),text:(p.text||'').slice(0,1500),pagesSeen:pages.length}}
+ else if(raw.includes('<')){const d=new DOMParser().parseFromString(raw,'text/html');summary={source:'dom-html',title:d.title,headings:[...d.querySelectorAll('h1,h2,h3')].map(e=>e.innerText.trim()).filter(Boolean).slice(0,20),buttons:[...d.querySelectorAll('button,[role=button]')].map(e=>e.innerText.trim()).filter(Boolean).slice(0,30),links:[...d.querySelectorAll('a')].map(e=>e.innerText.trim()).filter(Boolean).slice(0,30),inputs:[...d.querySelectorAll('input,textarea,select')].map(e=>e.name||e.id||e.type).slice(0,30),errors:[...d.querySelectorAll('[class*=error],[role=alert]')].map(e=>e.innerText.trim()).slice(0,20),text:(d.body?.innerText||'').slice(0,1500)}}
+ else{const lines=[...new Set(raw.split(/\n+/).map(x=>x.trim()).filter(Boolean))];summary={source:'raw-log-deduped',uniqueLines:lines.length,errors:lines.filter(l=>/error|exception|failed|403|404|500/i.test(l)).slice(0,20),tail:lines.slice(-60)}}
+ eyeParsed=summary;$('eyeSummary').textContent=JSON.stringify(summary,null,2);$('eyeStatus').textContent='Parse شد: '+summary.source+' — '+JSON.stringify(summary).length+' کاراکتر به‌جای '+raw.length;return summary}
+async function askModelEye(){const k=activeKey();if(!k)return toast('اول کلید API اضافه کنید');const useImg=($('eyeSource').value==='screenshot'||$('eyeSource').value==='camera');if(!useImg&&!eyeParsed)parseEye();const model=$('modelSelect').value||state.models[0];if(!model)return toast('مدلی انتخاب نشده');if(useImg&&camStream)captureCamera();$('eyeAnswer').textContent='⏳ در حال فکرکردن...';const goal=$('eyeGoal').value||'وضعیت صفحه را بگو و بهترین قدم بعدی را با shortcut پیشنهاد بده';
+ try{let content;if(useImg&&eyeImageData){content=[{type:'text',text:goal+'\nکوتاه جواب بده و در انتها بنویس: ACTION: <shortcut یا none>'},{type:'image_url',image_url:{url:eyeImageData}}]}else{content=goal+'\n\nخلاصه چشم (از لاگ صفحه):\n'+JSON.stringify(eyeParsed)+'\n\nکوتاه جواب بده و در انتها دقیقاً بنویس: ACTION: <shortcut با فرمت xdotool مثل ctrl+l یا none>'}
+ const r=await fetchWithTimeout(k.base+'/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+k.key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content}],temperature:0.2})});const j=await r.json();if(!r.ok)throw new Error(j.error?.message||'HTTP '+r.status);const a=j.choices?.[0]?.message?.content||'';$('eyeAnswer').textContent=a;const m=a.match(/ACTION:\s*([a-z0-9+\-_]+)/i);if(m&&m[1]!=='none'){$('customShortcut').value=m[1];toast('پیشنهاد مدل: '+m[1])}logReq(k,'EYE->MODEL '+model,true,0,j.usage?.total_tokens||0);save();renderAll()}catch(e){$('eyeAnswer').textContent='❌ '+e.message}}
+async function startCamera(){try{camStream=await navigator.mediaDevices.getUserMedia({video:true});$('eyeVideo').srcObject=camStream;$('eyeVideo').style.display='block';$('eyeSource').value='camera'}catch(e){toast('دوربین نیست: '+e.message)}}
+function stopCamera(){if(camStream)captureCamera();camStream?.getTracks().forEach(t=>t.stop());camStream=null;$('eyeVideo').style.display='none'}
+function captureCamera(){const v=$('eyeVideo'),c=$('eyeCanvas');if(!v.videoWidth)return;c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);eyeImageData=c.toDataURL('image/jpeg',0.75)}
+async function ehPost(path,body){const r=await fetch(ehBase()+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||'HTTP '+r.status);return j}
+function handShow(x){$('handLog').textContent=typeof x==='string'?x:JSON.stringify(x,null,2)}
+async function sendShortcut(keys){if(!keys||!keys.trim())return;try{const j=await ehPost('/hand/shortcut',{keys:keys.trim()});handShow(j);$('ehStatus').textContent=j.simulated?'شبیه‌سازی':'اجرا شد ✅';$('ehStatus').className='pill '+(j.simulated?'warn':'ok')}catch(e){handShow('❌ سرویس اوبونتو نیست: '+e.message+'\nفرمان (شبیه‌سازی): '+keys);$('ehStatus').textContent='آفلاین — شبیه‌سازی';$('ehStatus').className='pill warn'}}
+async function sendType(){try{handShow(await ehPost('/hand/type',{text:$('typeText').value}))}catch(e){handShow('❌ '+e.message)}}
+async function runMacro(){const steps=$('macroText').value.split(/\n+/).filter(Boolean).map(l=>{const i=l.indexOf(':');return{type:l.slice(0,i).trim(),value:l.slice(i+1).trim()}});try{handShow(await ehPost('/hand/macro',{steps}))}catch(e){handShow('❌ '+e.message)}}
+async function checkEH(){try{const r=await fetch(ehBase()+'/health');const j=await r.json();$('ehStatus').textContent='متصل ✅ '+j.mode;$('ehStatus').className='pill ok';handShow(j)}catch(e){$('ehStatus').textContent='آفلاین';$('ehStatus').className='pill bad';handShow('سرویس روی '+ehBase()+' نیست.\nاوبونتو: bash eye-hand-service/install-ubuntu22.sh')}}
+
+function copyText(t){navigator.clipboard.writeText(t).then(()=>toast('کپی شد 📋'))}
+function download(n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download=n;a.click()}
+function exportLogs(){download('logs.json',JSON.stringify(state.logs,null,2))}
+function exportBackup(){download('agentrouter-backup.json',JSON.stringify(state,null,2))}
+function importBackup(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{state=JSON.parse(t);save();renderAll();toast('بکاپ بازیابی شد')}).catch(()=>toast('فایل نامعتبر است'))}
+function saveSettings(){state.settings.base=$('defaultBase').value.trim();state.settings.timeout=+$('timeoutSec').value||120;save();toast('تنظیمات ذخیره شد')}
+$('chatInput').addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter')sendChat()});
+renderShortcuts();
+$('defaultBase').value=state.settings.base;$('timeoutSec').value=state.settings.timeout;
+renderAll();
+</script>
+<script src="modules/emergency.js"></script>
+<script src="modules/permissions.js"></script>
+<script src="modules/activity.js"></script>
+<script src="modules/providers.js"></script>
+<script src="modules/agent.js"></script>
+<script src="modules/modules-ui.js"></script>
+<script src="modules/chain.js"></script>
+<script src="modules/memory.js"></script>
+</body>
+</html>
