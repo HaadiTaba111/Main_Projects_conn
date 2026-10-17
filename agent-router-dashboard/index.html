@@ -50,6 +50,7 @@ canvas{width:100%;height:220px}
     <button data-page="history">🕘 تاریخچه چت</button>
     <button data-page="logs">📜 لاگ درخواست‌ها</button>
     <button data-page="snippets">🧩 نمونه‌کدها</button>
+    <button data-page="eyehand">👁️⌨️ چشم و دست</button>
     <button data-page="settings">⚙️ تنظیمات</button>
   </nav>
   <div class="sidebox"><b>🔒 امنیت کلیدها</b><p>کلیدها فقط داخل مرورگر شما (LocalStorage) ذخیره می‌شوند و جز به آدرس AgentRouter ارسال نمی‌شوند. برای استفاده اشتراکی، حتماً از کلید جدا استفاده کنید.</p></div>
@@ -115,6 +116,47 @@ canvas{width:100%;height:220px}
   <section class="page" id="page-history"><div class="card"><div class="row" style="justify-content:space-between"><b>تاریخچه مکالمات</b><button class="btn danger" onclick="if(confirm('همه پاک شود؟')){state.history=[];save();renderHistory()}">پاک‌کردن همه</button></div><div id="historyList"></div></div></section>
   <section class="page" id="page-logs"><div class="card"><div class="row" style="justify-content:space-between"><b>لاگ درخواست‌ها</b><div class="row"><button class="btn" onclick="exportLogs()">دانلود JSON</button><button class="btn danger" onclick="if(confirm('پاک شود؟')){state.logs=[];save();renderAll()}">پاک‌کردن</button></div></div><div id="logsTable"></div></div></section>
   <section class="page" id="page-snippets"><div class="grid"><div class="card" style="grid-column:span 2"><b>cURL</b><pre class="code" id="codeCurl"></pre><button class="btn" onclick="copyText(codeCurl.textContent)">کپی</button></div><div class="card" style="grid-column:span 2"><b>Python</b><pre class="code" id="codePy"></pre><button class="btn" onclick="copyText(codePy.textContent)">کپی</button></div><div class="card" style="grid-column:span 2"><b>JavaScript</b><pre class="code" id="codeJs"></pre><button class="btn" onclick="copyText(codeJs.textContent)">کپی</button></div><div class="card" style="grid-column:span 2"><b>تنظیمات پیشنهادی</b><p class="muted">کلید فعال و مدل انتخاب‌شده به‌صورت خودکار داخل نمونه‌کدها قرار می‌گیرد (کلید به‌صورت ماسک‌شده نمایش داده می‌شود؛ هنگام کپی در محیط امن خودتان جایگزین کنید).</p></div></div></section>
+  <!-- EYE & HAND -->
+  <section class="page" id="page-eyehand">
+    <div class="card">
+      <b>👁️ چشم — اول لاگ صفحه، دوربین فقط عنداللزوم</b>
+      <p class="muted">ترتیب سرعت: <b>۱) لاگ صفحه (سریع‌ترین)</b> ← ۲) خلاصه DOM/متن صفحه ← ۳) اسکرین‌شات ← ۴) دوربین (فقط وقتی لاگ چیزی نشان نمی‌دهد). خامِ کامل برای مدل ارسال نمی‌شود؛ اول همین‌جا خلاصه و dedupe می‌شود تا هم سریع باشد هم توکن کم مصرف شود.</p>
+      <div class="grid3">
+        <div><label>منبع چشم</label><select id="eyeSource" onchange="eyeSourceChanged()"><option value="log">📜 لاگ صفحه (پیش‌فرض و سریع)</option><option value="dom">🌐 خلاصه DOM / HTML صفحه</option><option value="screenshot">🖼️ اسکرین‌شات (در صورت نیاز)</option><option value="camera">📷 دوربین (در صورت نیاز)</option></select></div>
+        <div><label>مسیر فایل لاگ روی اوبونتو</label><input id="eyeLogPath" dir="ltr" value="/tmp/page.log"></div>
+        <div><label>آدرس سرویس اوبونتو</label><input id="ehBackend" dir="ltr" value="http://127.0.0.1:8765"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <label class="btn" style="cursor:pointer">📂 بارگذاری فایل لاگ / HTML / اسکرین‌شات<input type="file" id="eyeFile" hidden accept=".log,.txt,.json,.html,.htm,.png,.jpg,.jpeg,.webp" onchange="eyeFileLoaded(this)"></label>
+        <button class="btn primary" onclick="fetchLogFromUbuntu()">↻ خواندن زنده لاگ از اوبونتو</button>
+        <button class="btn" onclick="startCamera()">📷 روشن‌کردن دوربین</button>
+        <button class="btn danger" onclick="stopCamera()">خاموش</button>
+        <span class="pill warn" id="eyeStatus">چشم: لاگ صفحه</span>
+      </div>
+      <label>متن لاگ / DOM (می‌توانید Paste هم بکنید)</label>
+      <textarea id="eyeRaw" dir="ltr" style="min-height:120px;text-align:left" placeholder='{"type":"page","url":"https://...","title":"...","buttons":["Login"],"inputs":["email"],"errors":[]}'></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn cyan" onclick="parseEye()">⚡ Parse و خلاصه‌سازی (بدون مدل)</button><button class="btn primary" onclick="askModelEye()">🤖 پرسیدن از مدل با خلاصه چشم</button><input id="eyeGoal" style="flex:1;width:auto" placeholder="هدف عامل: مثلاً فرم لاگین را پیدا و آماده ورود کن"></div>
+      <div class="grid2">
+        <div><label>خلاصه ساخت‌یافته چشم (همین برای مدل می‌رود)</label><pre class="code" id="eyeSummary" style="min-height:180px">هنوز چیزی Parse نشده.</pre></div>
+        <div><label>تصمیم مدل / تصویر عنداللزوم</label><video id="eyeVideo" autoplay playsinline style="width:100%;border-radius:14px;display:none;background:#000"></video><canvas id="eyeCanvas" style="width:100%;border-radius:14px;display:none"></canvas><img id="eyeImg" style="width:100%;border-radius:14px;display:none"><p class="muted" id="eyeAnswer">تصمیم مدل اینجا نمایش داده می‌شود؛ Shortcut پیشنهادی داخل کادر Shortcut سفارشی قرار می‌گیرد تا اول خودتان تأیید و اجرا کنید.</p></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <b>⌨️ دست — اول Shortcut، کلیک فقط عنداللزوم</b>
+      <p class="muted">دستورها از طریق سرویس اوبونتو با <span class="mono">xdotool key</span> اجرا می‌شوند. اگر اوبونتو/X در دسترس نباشد، حالت شبیه‌سازی فعال می‌شود و دستور فقط لاگ می‌شود.</p>
+      <div class="grid3" id="shortcutGrid"></div>
+      <div class="grid2">
+        <div><label>Shortcut سفارشی (فرمت xdotool)</label><div class="row"><input id="customShortcut" dir="ltr" placeholder="ctrl+shift+t" style="flex:1;width:auto"><button class="btn primary" onclick="sendShortcut(document.getElementById('customShortcut').value)">اجرا</button></div>
+        <label>تایپ متن</label><div class="row"><input id="typeText" placeholder="متنی که تایپ شود..." style="flex:1;width:auto"><button class="btn" onclick="sendType()">تایپ کن</button></div>
+        <label>ماکرو (هر خط: key:ctrl+l یا type:hello یا sleep:500)</label><textarea id="macroText" dir="ltr" style="text-align:left">key:ctrl+l
+type:agentrouter.org
+key:Return
+sleep:800</textarea><button class="btn cyan" onclick="runMacro()">▶ اجرای ماکرو</button></div>
+        <div><label>آخرین فرمان دست</label><pre class="code" id="handLog" style="min-height:160px">—</pre><button class="btn" onclick="checkEH()">بررسی اتصال سرویس اوبونتو</button> <span id="ehStatus" class="pill warn">بررسی نشده</span>
+        <p class="muted">⚠️ اجرای خودکار پیشنهاد مدل عمداً خاموش است؛ اول انسان تأیید می‌کند، بعد Shortcut اجرا می‌شود.</p></div>
+      </div>
+    </div>
+  </section>
   <section class="page" id="page-settings"><div class="card"><b>تنظیمات عمومی</b>
     <label>Base URL پیش‌فرض برای کلیدهای جدید</label><input id="defaultBase" value="https://agentrouter.org/v1">
     <label>مهلت درخواست (ثانیه)</label><input id="timeoutSec" type="number" value="120">
@@ -195,6 +237,32 @@ function renderSnippets(){const k=activeKey(),base=k?.base||state.settings.base,
  $('codePy').textContent=`from openai import OpenAI\nclient = OpenAI(base_url="${base}", api_key="${key}")\nresp = client.chat.completions.create(model="${model}", messages=[{"role":"user","content":"سلام!"}])\nprint(resp.choices[0].message.content)`;
  $('codeJs').textContent=`import OpenAI from "openai";\nconst client = new OpenAI({ baseURL: "${base}", apiKey: "${key}", dangerouslyAllowBrowser: true });\nconst resp = await client.chat.completions.create({ model: "${model}", messages: [{role:"user",content:"سلام!"}] });\nconsole.log(resp.choices[0].message.content);`}
 function drawChart(){const c=$('chart');if(!c)return;const x=c.getContext('2d');c.width=c.offsetWidth*2;c.height=440;x.scale(2,2);const W=c.offsetWidth,H=220;x.clearRect(0,0,W,H);const days=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d});const vals=days.map(d=>state.logs.filter(l=>new Date(l.time).toDateString()===d.toDateString()).reduce((s,l)=>s+(l.tokens||0),0));const max=Math.max(...vals,1);x.strokeStyle='#334155';x.beginPath();vals.forEach((v,i)=>{const px=30+i*(W-50)/6,py=H-30-(v/max)*(H-60);i?x.lineTo(px,py):x.moveTo(px,py)});x.strokeStyle='#06b6d4';x.lineWidth=2.5;x.stroke();x.fillStyle='#94a3b8';x.font='11px Vazirmatn';days.forEach((d,i)=>x.fillText(d.toLocaleDateString('fa-IR',{weekday:'short'}),20+i*(W-50)/6,H-8));vals.forEach((v,i)=>{if(v)x.fillText(v.toLocaleString(),20+i*(W-50)/6,H-40-(v/max)*(H-60))})}
+/* ===== EYE (log-first) & HAND (shortcut-first) ===== */
+const ehBase=()=>($('ehBackend').value||'http://127.0.0.1:8765').replace(/\/$/,'');
+let eyeImageData=null, eyeParsed=null, camStream=null;
+const SHORTCUTS=[['ctrl+l','🌐 نوار آدرس'],['ctrl+t','➕ تب جدید'],['ctrl+w','✖ بستن تب'],['ctrl+shift+t','↩️ بازگردانی تب'],['ctrl+r','🔄 رفرش'],['ctrl+f','🔎 جستجو در صفحه'],['Tab','⭾ فیلد بعدی'],['shift+Tab','⬆ فیلد قبلی'],['Return','⏎ Enter'],['Escape','⎋ لغو'],['ctrl+a','▦ انتخاب همه'],['ctrl+c','📋 کپی'],['ctrl+v','📌 Paste'],['ctrl+s','💾 ذخیره'],['alt+Tab','🔀 سوییچ پنجره'],['super','🪟 منوی اوبونتو']];
+function renderShortcuts(){$('shortcutGrid').innerHTML=SHORTCUTS.map(([k,l])=>`<button class="btn" onclick="sendShortcut('${k}')"><span class="mono">${k}</span><br><small>${l}</small></button>`).join('')}
+function eyeSourceChanged(){const v=$('eyeSource').value;$('eyeStatus').textContent='چشم: '+$('eyeSource').selectedOptions[0].textContent;['eyeVideo','eyeCanvas','eyeImg'].forEach(id=>$(id).style.display='none');if(v==='camera')$('eyeVideo').style.display='block';if(v==='screenshot'||v==='camera')toast('حالت تصویری فقط وقتی لاگ کافی نیست')}
+async function eyeFileLoaded(inp){const f=inp.files[0];if(!f)return;if(f.type.startsWith('image/')){$('eyeSource').value='screenshot';const r=new FileReader();r.onload=()=>{eyeImageData=r.result;$('eyeImg').src=eyeImageData;$('eyeImg').style.display='block';$('eyeSummary').textContent='اسکرین‌شات بارگذاری شد ('+Math.round(f.size/1024)+'KB)'};r.readAsDataURL(f);return}$('eyeRaw').value=(await f.text()).slice(0,300000);parseEye();toast('فایل خوانده و Parse شد ✅')}
+async function fetchLogFromUbuntu(){try{const r=await fetch(ehBase()+'/eye/log?path='+encodeURIComponent($('eyeLogPath').value)+'&lines=300');const j=await r.json();if(!r.ok)throw new Error(j.detail||r.status);$('eyeRaw').value=j.content;parseEye();toast('لاگ زنده از اوبونتو خوانده شد ⚡')}catch(e){toast('سرویس اوبونتو نیست: '+e.message)}}
+function parseEye(){const raw=$('eyeRaw').value.trim();if(!raw)return toast('اول لاگ/DOM وارد کنید');let pages=[];raw.split(/\n+/).forEach(ln=>{try{const j=JSON.parse(ln);if(j.type==='page'||j.url||j.title)pages.push(j)}catch{}});let summary;
+ if(pages.length){const p=pages[pages.length-1];summary={source:'page-log',url:p.url||null,title:p.title||null,buttons:(p.buttons||[]).slice(0,30),links:(p.links||[]).slice(0,30),inputs:(p.inputs||[]).slice(0,30),errors:(p.errors||[]).slice(0,20),text:(p.text||'').slice(0,1500),pagesSeen:pages.length}}
+ else if(raw.includes('<')){const d=new DOMParser().parseFromString(raw,'text/html');summary={source:'dom-html',title:d.title,headings:[...d.querySelectorAll('h1,h2,h3')].map(e=>e.innerText.trim()).filter(Boolean).slice(0,20),buttons:[...d.querySelectorAll('button,[role=button]')].map(e=>e.innerText.trim()).filter(Boolean).slice(0,30),links:[...d.querySelectorAll('a')].map(e=>e.innerText.trim()).filter(Boolean).slice(0,30),inputs:[...d.querySelectorAll('input,textarea,select')].map(e=>e.name||e.id||e.type).slice(0,30),errors:[...d.querySelectorAll('[class*=error],[role=alert]')].map(e=>e.innerText.trim()).slice(0,20),text:(d.body?.innerText||'').slice(0,1500)}}
+ else{const lines=[...new Set(raw.split(/\n+/).map(x=>x.trim()).filter(Boolean))];summary={source:'raw-log-deduped',uniqueLines:lines.length,errors:lines.filter(l=>/error|exception|failed|403|404|500/i.test(l)).slice(0,20),tail:lines.slice(-60)}}
+ eyeParsed=summary;$('eyeSummary').textContent=JSON.stringify(summary,null,2);$('eyeStatus').textContent='Parse شد: '+summary.source+' — '+JSON.stringify(summary).length+' کاراکتر به‌جای '+raw.length;return summary}
+async function askModelEye(){const k=activeKey();if(!k)return toast('اول کلید API اضافه کنید');const useImg=($('eyeSource').value==='screenshot'||$('eyeSource').value==='camera');if(!useImg&&!eyeParsed)parseEye();const model=$('modelSelect').value||state.models[0];if(!model)return toast('مدلی انتخاب نشده');if(useImg&&camStream)captureCamera();$('eyeAnswer').textContent='⏳ در حال فکرکردن...';const goal=$('eyeGoal').value||'وضعیت صفحه را بگو و بهترین قدم بعدی را با shortcut پیشنهاد بده';
+ try{let content;if(useImg&&eyeImageData){content=[{type:'text',text:goal+'\nکوتاه جواب بده و در انتها بنویس: ACTION: <shortcut یا none>'},{type:'image_url',image_url:{url:eyeImageData}}]}else{content=goal+'\n\nخلاصه چشم (از لاگ صفحه):\n'+JSON.stringify(eyeParsed)+'\n\nکوتاه جواب بده و در انتها دقیقاً بنویس: ACTION: <shortcut با فرمت xdotool مثل ctrl+l یا none>'}
+ const r=await fetchWithTimeout(k.base+'/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+k.key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content}],temperature:0.2})});const j=await r.json();if(!r.ok)throw new Error(j.error?.message||'HTTP '+r.status);const a=j.choices?.[0]?.message?.content||'';$('eyeAnswer').textContent=a;const m=a.match(/ACTION:\s*([a-z0-9+\-_]+)/i);if(m&&m[1]!=='none'){$('customShortcut').value=m[1];toast('پیشنهاد مدل: '+m[1])}logReq(k,'EYE->MODEL '+model,true,0,j.usage?.total_tokens||0);save();renderAll()}catch(e){$('eyeAnswer').textContent='❌ '+e.message}}
+async function startCamera(){try{camStream=await navigator.mediaDevices.getUserMedia({video:true});$('eyeVideo').srcObject=camStream;$('eyeVideo').style.display='block';$('eyeSource').value='camera'}catch(e){toast('دوربین نیست: '+e.message)}}
+function stopCamera(){if(camStream)captureCamera();camStream?.getTracks().forEach(t=>t.stop());camStream=null;$('eyeVideo').style.display='none'}
+function captureCamera(){const v=$('eyeVideo'),c=$('eyeCanvas');if(!v.videoWidth)return;c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);eyeImageData=c.toDataURL('image/jpeg',0.75)}
+async function ehPost(path,body){const r=await fetch(ehBase()+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||'HTTP '+r.status);return j}
+function handShow(x){$('handLog').textContent=typeof x==='string'?x:JSON.stringify(x,null,2)}
+async function sendShortcut(keys){if(!keys||!keys.trim())return;try{const j=await ehPost('/hand/shortcut',{keys:keys.trim()});handShow(j);$('ehStatus').textContent=j.simulated?'شبیه‌سازی':'اجرا شد ✅';$('ehStatus').className='pill '+(j.simulated?'warn':'ok')}catch(e){handShow('❌ سرویس اوبونتو نیست: '+e.message+'\nفرمان (شبیه‌سازی): '+keys);$('ehStatus').textContent='آفلاین — شبیه‌سازی';$('ehStatus').className='pill warn'}}
+async function sendType(){try{handShow(await ehPost('/hand/type',{text:$('typeText').value}))}catch(e){handShow('❌ '+e.message)}}
+async function runMacro(){const steps=$('macroText').value.split(/\n+/).filter(Boolean).map(l=>{const i=l.indexOf(':');return{type:l.slice(0,i).trim(),value:l.slice(i+1).trim()}});try{handShow(await ehPost('/hand/macro',{steps}))}catch(e){handShow('❌ '+e.message)}}
+async function checkEH(){try{const r=await fetch(ehBase()+'/health');const j=await r.json();$('ehStatus').textContent='متصل ✅ '+j.mode;$('ehStatus').className='pill ok';handShow(j)}catch(e){$('ehStatus').textContent='آفلاین';$('ehStatus').className='pill bad';handShow('سرویس روی '+ehBase()+' نیست.\nاوبونتو: bash eye-hand-service/install-ubuntu22.sh')}}
+
 function copyText(t){navigator.clipboard.writeText(t).then(()=>toast('کپی شد 📋'))}
 function download(n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download=n;a.click()}
 function exportLogs(){download('logs.json',JSON.stringify(state.logs,null,2))}
@@ -202,6 +270,7 @@ function exportBackup(){download('agentrouter-backup.json',JSON.stringify(state,
 function importBackup(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{state=JSON.parse(t);save();renderAll();toast('بکاپ بازیابی شد')}).catch(()=>toast('فایل نامعتبر است'))}
 function saveSettings(){state.settings.base=$('defaultBase').value.trim();state.settings.timeout=+$('timeoutSec').value||120;save();toast('تنظیمات ذخیره شد')}
 $('chatInput').addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter')sendChat()});
+renderShortcuts();
 $('defaultBase').value=state.settings.base;$('timeoutSec').value=state.settings.timeout;
 renderAll();
 </script>
