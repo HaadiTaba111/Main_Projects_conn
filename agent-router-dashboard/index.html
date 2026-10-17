@@ -256,6 +256,8 @@ key:Tab</textarea>
       <div class="card"><b>🖥️ منابع سیستم اوبونتو</b><div id="resBox" class="muted" style="margin-top:8px">در انتظار سرویس اوبونتو…</div>
         <label>حد مجاز RAM برای اجرای ایجنت (٪)</label><input id="resRamLimit" type="number" value="90" min="50" max="99">
         <div class="row" style="margin-top:8px"><button class="btn" onclick="refreshResources(true)">↻ بروزرسانی</button><button class="btn danger" onclick="unloadOllamaModels()">آزادسازی RAM مدل‌های Ollama</button></div></div>
+      <div class="card"><b>📜 لاگ سرویس اوبونتو (لازم نیست کنسول/VSCode باز کنید)</b><pre class="code" id="ubuntuLogBox" style="min-height:140px">در انتظار اتصال…</pre>
+        <label style="margin:0"><input type="checkbox" id="ubuntuLogAuto" checked style="width:auto"> بروزرسانی خودکار هر ۵ ثانیه</label></div>
       <div class="card"><b>🌀 نگهبان لوپ (حلقه گنگ)</b><p class="muted" id="loopBox">لوپی دیده نشده. اگر یک عمل روی یک وضعیت صفحه ≥۳ بار در ۲ دقیقه تکرار شود، نگهبان مکث می‌کند و از شما کمک می‌خواهد.</p>
         <div class="row"><button class="btn primary" onclick="loopResume()">▶ ادامه بده (ریست نگهبان)</button><button class="btn" onclick="loopAskBrain()">از مغز بپرس</button></div></div>
       <div class="card"><b>⏰ زمان‌بندی</b><p class="muted">داشبورد ساعت زنده دارد (بالای صفحه). تسک‌ها وقتی اجرا می‌شوند که داشبورد باز و سیستم روشن باشد؛ تسک ازدست‌رفته هنگام بازشدن گزارش می‌شود.</p>

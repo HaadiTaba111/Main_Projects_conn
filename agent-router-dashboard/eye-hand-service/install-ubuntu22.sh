@@ -15,11 +15,17 @@ ExecStart=/usr/bin/python3 $DIR/app.py
 Environment=DISPLAY=:0
 Environment=EH_LOG_ROOTS=/tmp:$HOME/page-logs:/var/log
 Restart=on-failure
+# ==== حدود منابع (cgroup) — قابل تغییر ====
+MemoryHigh=512M
+MemoryMax=768M
+CPUQuota=150%
+TasksMax=128
 [Install]
 WantedBy=default.target
 EOF
 systemctl --user daemon-reload
 systemctl --user enable --now eye-hand.service
 sleep 1; curl -s http://127.0.0.1:8765/health; echo
+echo "==> (اختیاری) محدودکردن Ollama: sudo bash limit-ollama.sh 6G 300%"
 echo "✅ آماده است: داشبورد را باز کنید → تب «چشم و دست» → بررسی اتصال"
 echo "لاگ نمونه:  python3 ../tools/make_sample_page_log.py"

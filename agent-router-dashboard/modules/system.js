@@ -103,3 +103,16 @@ async function schedulerTick(){
 // missed-run report on load
 state.schedules.forEach(t=>{ if(t.enabled && t.nextRun && Date.now()-t.nextRun>t.every*60000){ act('agent','⏰ تسک ازدست‌رفته (داشبورد بسته بود)','error',t.name); t.nextRun=Date.now()+t.every*60000; } });
 setInterval(schedulerTick, 20000); renderSchedules();
+
+// ===== Everything visible in the dashboard: Ubuntu service logs + global errors =====
+async function refreshUbuntuLogs(){
+  const box=$('ubuntuLogBox'); if(!box) return;
+  try{ const r=await fetch(ehBase()+'/logs?lines=80'); const j=await r.json();
+    box.textContent=j.logs.map(l=>l.time+'  '+l.msg).join('\n')||'لاگی نیست';
+    box.scrollTop=1e9;
+  }catch{ box.textContent='سرویس اوبونتو آفلاین است — لاگ‌های داشبورد (بالا) همچنان کامل ثبت می‌شوند.'; }
+}
+setInterval(()=>{ if($('ubuntuLogAuto')?.checked) refreshUbuntuLogs(); }, 5000);
+setTimeout(refreshUbuntuLogs, 1500);
+window.addEventListener('error', e=> act('provider','خطای جاوااسکریپت','error',e.message));
+window.addEventListener('unhandledrejection', e=> act('provider','Promise ردشده','error',String(e.reason?.message||e.reason)));

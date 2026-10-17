@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 AgentRouter: کلون/آپدیت + اجرا (خودکار هنگام بازشدن VSCode)",
+      "type": "shell",
+      "command": "bash bootstrap/dev.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "runOptions": { "runOn": "folderOpen" },
+      "problemMatcher": []
+    }
+  ]
+}

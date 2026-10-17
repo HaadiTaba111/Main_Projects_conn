@@ -3,7 +3,10 @@
 No third-party Python deps. Eye reads page log files; Hand uses xdotool.
 Run: DISPLAY=:0 python3 app.py   ->  http://127.0.0.1:8765
 """
-import json, os, re, shutil, subprocess, time, html as htmlmod, urllib.request
+import json, os, re, shutil, subprocess, time, html as htmlmod, urllib.request, resource
+from collections import deque
+LOG=deque(maxlen=500)
+def slog(msg): LOG.append({'time': time.strftime('%H:%M:%S'), 'msg': str(msg)[:500]})
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, quote
@@ -24,6 +27,7 @@ def run_xdo(args):
 
 class H(BaseHTTPRequestHandler):
     def _send(self, code, obj):
+        slog(f"{self.command} {self.path} -> {code}")
         b = json.dumps(obj, ensure_ascii=False).encode()
         self.send_response(code)
         self.send_header("Content-Type","application/json; charset=utf-8")
@@ -40,6 +44,8 @@ class H(BaseHTTPRequestHandler):
         if u.path == "/health":
             return self._send(200, {"ok": True, "mode": "real (xdotool)" if xdotool_mode() else "simulated",
                                     "display": os.getenv("DISPLAY"), "xdotool": shutil.which("xdotool"), "emergency_stopped": STOPPED["on"]})
+        if u.path == "/logs":
+            return self._send(200, {"ok": True, "logs": list(LOG)[-min(int(q.get("lines",["100"])[0]),500):]})
         if u.path == "/resources":
             def cpu():
                 a=[int(x) for x in Path("/proc/stat").read_text().splitlines()[0].split()[1:]]; time.sleep(.1)
@@ -52,7 +58,9 @@ class H(BaseHTTPRequestHandler):
             d=shutil.disk_usage("/")
             return self._send(200, {"ok":True,"cpu_percent":cpu(),"ram_total":total,"ram_used":total-avail,
                 "ram_percent":round(100*(total-avail)/max(total,1),1),"disk_percent":round(100*d.used/max(d.total,1),1),
-                "load":list(os.getloadavg()),"uptime_sec":float(Path("/proc/uptime").read_text().split()[0])})
+                "load":list(os.getloadavg()),"uptime_sec":float(Path("/proc/uptime").read_text().split()[0]),
+                "process_rss_mb":round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024,1),
+                "cgroup_memory_max":(lambda: (Path("/sys/fs/cgroup/memory.max").read_text().strip() if Path("/sys/fs/cgroup/memory.max").exists() else "نامشخص"))()})
         if u.path == "/eye/log":
             raw = q.get("path", ["/tmp/page.log"])[0]; lines = min(int(q.get("lines",["300"])[0]), 2000)
             p = Path(raw).expanduser()
@@ -114,5 +122,5 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 
 if __name__ == "__main__":
-    print(f"Eye&Hand on http://{HOST}:{PORT}  mode={'real' if xdotool_mode() else 'simulated'}")
+    slog("service started"); print(f"Eye&Hand on http://{HOST}:{PORT}  mode={'real' if xdotool_mode() else 'simulated'}")
     ThreadingHTTPServer((HOST, PORT), H).serve_forever()
